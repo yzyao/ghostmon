@@ -1,0 +1,32 @@
+[Unit]
+Description=GhostMon Dashboard
+Wants=network-online.target
+After=network-online.target
+
+[Service]
+Type=simple
+User=ghostmon
+Group=ghostmon
+WorkingDirectory=/opt/ghostmon/dashboard
+EnvironmentFile=-/etc/ghostmon/dashboard.env
+ExecStart=/opt/ghostmon/dashboard/GhostMon.Dashboard
+Restart=always
+RestartSec=5
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=strict
+ProtectHome=true
+ProtectKernelTunables=true
+ProtectKernelModules=true
+ProtectControlGroups=true
+LockPersonality=true
+MemoryDenyWriteExecute=true
+RestrictRealtime=true
+RestrictSUIDSGID=true
+RestrictNamespaces=true
+SystemCallArchitectures=native
+RestrictAddressFamilies=AF_UNIX AF_INET AF_INET6
+UMask=0077
+
+[Install]
+WantedBy=multi-user.target
