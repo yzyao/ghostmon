@@ -1,12 +1,26 @@
 {
   "profiles": {
-    "GhostMon.Agent": {
+    "Agent": {
       "commandName": "Project",
       "launchBrowser": true,
       "environmentVariables": {
-        "ASPNETCORE_ENVIRONMENT": "Development"
+        "ASPNETCORE_ENVIRONMENT": "Development",
+        "DOTNET_ENVIRONMENT": "Development",
+        "DashboardBaseUrl": "http://127.0.0.1:8080",
+        "SecurityToken": "change-this-token",
+        "NodeName": "agent-dev",
+        "GroupName": "default",
+        "AgentPort": "8081",
+        "TelemetryIntervalSeconds": "5",
+        "PingTimeoutMilliseconds": "500",
+        "PingTargetMode": "Both",
+        "PingTargets": "1.1.1.1,2606:4700:4700::1111",
+        "HostProcPath": "/proc",
+        "HostSysPath": "/sys",
+        "HostRootPath": "/",
+        "HostTmpPath": "/tmp"
       },
-      "applicationUrl": "https://localhost:10703;http://localhost:10706"
+      "applicationUrl": "http://localhost:8081"
     }
   }
 }

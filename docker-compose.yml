@@ -22,10 +22,43 @@ services:
       - redis
     environment:
       ASPNETCORE_URLS: http://0.0.0.0:8080
-      REDIS__CONNECTIONSTRING: redis:6379,abortConnect=false
-      SECURITY_TOKEN: change-this-token
+      RedisConnectionString: ${RedisConnectionString:-redis:6379,abortConnect=false}
+      SecurityToken: ${SecurityToken:-change-this-token}
+      TelemetryIntervalSeconds: ${TelemetryIntervalSeconds:-5}
+      PingTimeoutMilliseconds: ${PingTimeoutMilliseconds:-500}
+      PingTargetMode: ${PingTargetMode:-Both}
+      PingTargets: ${PingTargets:-1.1.1.1,2606:4700:4700::1111}
     ports:
       - "8080:8080"
+    restart: unless-stopped
+
+  agent:
+    build:
+      context: .
+      dockerfile: src/GhostMon.Agent/Dockerfile
+    depends_on:
+      - dashboard
+    environment:
+      DashboardBaseUrl: ${DashboardBaseUrl:-http://dashboard:8080}
+      SecurityToken: ${SecurityToken:-change-this-token}
+      NodeName: ${NodeName:-node-01}
+      GroupName: ${GroupName:-default}
+      AgentPort: ${AgentPort:-8081}
+      TelemetryIntervalSeconds: ${TelemetryIntervalSeconds:-5}
+      PingTimeoutMilliseconds: ${PingTimeoutMilliseconds:-500}
+      PingTargetMode: ${PingTargetMode:-Both}
+      PingTargets: ${PingTargets:-1.1.1.1,2606:4700:4700::1111}
+      HostProcPath: ${HostProcPath:-/host-proc}
+      HostSysPath: ${HostSysPath:-/host-sys}
+      HostRootPath: ${HostRootPath:-/host-root}
+      HostTmpPath: ${HostTmpPath:-/host-tmp}
+    volumes:
+      - /proc:/host-proc:ro
+      - /sys:/host-sys:ro
+      - /:/host-root:ro
+      - /tmp:/host-tmp
+    ports:
+      - "8081:8081"
     restart: unless-stopped
 
 volumes:

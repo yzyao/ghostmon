@@ -4,11 +4,11 @@ WORKDIR /src
 RUN apk add --no-cache clang lld musl-dev zlib-dev
 
 COPY . .
-RUN dotnet publish src/GhostMon.Dashboard/GhostMon.Dashboard.csproj -c Release -r linux-musl-x64 --self-contained true -p:PublishAot=true -o /app/publish
+RUN dotnet publish src/GhostMon.Agent/GhostMon.Agent.csproj -c Release -r linux-musl-x64 --self-contained true -p:PublishAot=true -o /app/publish
 
 FROM alpine:3.20 AS final
 RUN apk add --no-cache libstdc++ libgcc zlib ca-certificates
 WORKDIR /app
 COPY --from=build /app/publish .
-EXPOSE 8080
-ENTRYPOINT ["./GhostMon.Dashboard"]
+EXPOSE 8081
+ENTRYPOINT ["./GhostMon.Agent"]

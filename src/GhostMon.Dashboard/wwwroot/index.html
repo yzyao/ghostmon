@@ -4,7 +4,7 @@
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <meta name="color-scheme" content="dark" />
-  <title>GhostMon Dashboard</title>
+  <title>GhostMon 控制台</title>
   <style>
     :root {
       --bg: #07111f;
@@ -407,83 +407,83 @@
   <div class="shell">
     <section class="hero">
       <div>
-        <h1 class="title">GhostMon Dashboard</h1>
-        <p class="subtitle">Lightweight server probe dashboard. GhostMon keeps collection and storage on the backend; this page only renders live status, assets, and 24-hour history with search and filters.</p>
+        <h1 class="title">GhostMon 控制台</h1>
+        <p class="subtitle">轻量服务器探针控制台。GhostMon 把采集和存储放在后端，这个页面只负责渲染实时状态、资产信息和 24 小时历史，并提供搜索与筛选。</p>
       </div>
       <div class="badge-row">
-        <div class="badge">SignalR: <span id="connState">connecting</span></div>
-        <div class="badge">Nodes: <span id="nodeCount">0</span></div>
-        <div class="badge">Visible: <span id="visibleCount">0</span></div>
-        <div class="badge">Last update: <span id="lastUpdate">-</span></div>
+        <div class="badge">SignalR: <span id="connState">连接中</span></div>
+        <div class="badge">节点数: <span id="nodeCount">0</span></div>
+        <div class="badge">可见: <span id="visibleCount">0</span></div>
+        <div class="badge">最近更新: <span id="lastUpdate">-</span></div>
       </div>
     </section>
 
     <section class="grid">
       <article class="card span-4">
         <div class="card-head">
-          <h2 class="card-title">Cluster Status</h2>
+          <h2 class="card-title">集群状态</h2>
         </div>
         <div class="card-body kpi">
-          <div class="value" id="clusterValue">Idle</div>
-          <div class="label">Broadcast feed</div>
-          <div class="mono muted" id="clusterDetail">Waiting for the first snapshot.</div>
+          <div class="value" id="clusterValue">空闲</div>
+          <div class="label">广播流</div>
+          <div class="mono muted" id="clusterDetail">等待第一份快照。</div>
         </div>
       </article>
 
       <article class="card span-4">
         <div class="card-head">
-          <h2 class="card-title">Traffic</h2>
+          <h2 class="card-title">流量</h2>
         </div>
         <div class="card-body kpi">
           <div class="value" id="trafficValue">0 kbps</div>
-          <div class="label">Aggregate network throughput</div>
-          <div class="mono muted" id="trafficDetail">Rx / Tx across visible nodes.</div>
+          <div class="label">可见节点网络总吞吐</div>
+          <div class="mono muted" id="trafficDetail">可见节点的 Rx / Tx 总吞吐。</div>
         </div>
       </article>
 
       <article class="card span-4">
         <div class="card-head">
-          <h2 class="card-title">Health</h2>
+          <h2 class="card-title">健康</h2>
         </div>
         <div class="card-body kpi">
-          <div class="value" id="healthValue">Unknown</div>
-          <div class="label">Current fleet posture</div>
-          <div class="mono muted" id="healthDetail">Derived from the latest broadcast.</div>
+          <div class="value" id="healthValue">未知</div>
+          <div class="label">当前集群状态</div>
+          <div class="mono muted" id="healthDetail">根据最新广播计算。</div>
         </div>
       </article>
 
       <article class="card span-12">
         <div class="card-head">
-          <h2 class="card-title">Filters</h2>
-          <div class="mono muted" id="filterSummary">No filters active.</div>
+          <h2 class="card-title">筛选</h2>
+          <div class="mono muted" id="filterSummary">未启用筛选。</div>
         </div>
         <div class="card-body controls">
           <div class="control-row">
             <label class="search-box">
-              <span class="mono muted">Search</span>
-              <input id="searchInput" type="search" placeholder="Node name / IP / group / CPU model / public IP" />
+              <span class="mono muted">搜索</span>
+              <input id="searchInput" type="search" placeholder="按节点名 / IP / 分组 / CPU 型号 搜索" />
             </label>
             <div class="filter-group" id="healthFilters">
-              <button class="chip active" data-health="all" type="button">All</button>
-              <button class="chip" data-health="healthy" type="button">Healthy</button>
-              <button class="chip" data-health="warning" type="button">Warning</button>
-              <button class="chip" data-health="degraded" type="button">Degraded</button>
+              <button class="chip active" data-health="all" type="button">全部</button>
+              <button class="chip" data-health="healthy" type="button">健康</button>
+              <button class="chip" data-health="warning" type="button">警告</button>
+              <button class="chip" data-health="degraded" type="button">退化</button>
             </div>
           </div>
           <div class="control-row">
             <div class="filter-group">
-              <button class="chip" id="toggleGroupsBtn" type="button">Collapse all groups</button>
-              <button class="chip" id="refreshBtn" type="button">Refresh now</button>
+              <button class="chip" id="toggleGroupsBtn" type="button">全部折叠</button>
+              <button class="chip" id="refreshBtn" type="button">刷新快照</button>
             </div>
-            <div class="mono muted" id="stateHint">SignalR auto-updates when available, polling stays as fallback.</div>
+            <div class="mono muted" id="stateHint">页面通过 SignalR 保持实时更新，刷新仅用于手动获取最新快照。</div>
           </div>
         </div>
       </article>
 
       <article class="card span-12">
         <div class="card-head">
-          <h2 class="card-title">Nodes</h2>
-          <div class="mono muted">Grouped view with 24h history sparkline</div>
+          <h2 class="card-title">节点</h2>
+          <div class="mono muted">按分组展示 24 小时历史曲线</div>
         </div>
         <div class="card-body">
           <div class="nodes" id="nodes"></div>
@@ -503,7 +503,6 @@
       groupOpen: new Map()
     };
 
-    let pollingTimer = null;
     const el = (id) => document.getElementById(id);
 
     function fmtPercent(value) {
@@ -559,7 +558,7 @@
       const runtime = metrics.runtime || {};
       const sanity = metrics.sanity || {};
 
-      if (sanity.diskReadOnlyPanic || !sanity.chatGPTUnlocked) {
+      if (sanity.diskReadOnlyPanic) {
         return "degraded";
       }
 
@@ -580,10 +579,10 @@
 
     function healthLabel(value) {
       switch (value) {
-        case "healthy": return "Healthy";
-        case "warning": return "Warning";
-        case "degraded": return "Degraded";
-        default: return "Unknown";
+        case "healthy": return "健康";
+        case "warning": return "警告";
+        case "degraded": return "退化";
+        default: return "未知";
       }
     }
 
@@ -604,16 +603,12 @@
       const reg = node.registration || {};
       const metrics = node.currentMetrics || {};
       const assets = metrics.assets || reg.assets || {};
-      const sanity = metrics.sanity || {};
       const haystack = [
         reg.nodeName,
         reg.groupName,
         reg.remoteIp,
-        reg.agentBaseUrl,
         assets.cpuModelName,
-        assets.osPlatform,
-        sanity.publicIPv4,
-        sanity.publicIPv6
+        assets.osPlatform
       ]
         .filter(Boolean)
         .join(" ")
@@ -715,19 +710,17 @@
       const netHistory = sampleHistoryValues(history, (entry) => (entry?.metrics?.runtime?.netRxSpeedKbps ?? 0) + (entry?.metrics?.runtime?.netTxSpeedKbps ?? 0));
 
       const topItems = [
-        `IP ${reg.remoteIp || "n/a"}`,
-        `Group ${reg.groupName || "default"}`,
-        `Port ${reg.metricsPort || 0}`,
-        `Updated ${formatTime(reg.lastSeenUtc)}`
+        `IP ${reg.remoteIp || "暂无"}`,
+        `分组 ${reg.groupName || "默认"}`,
+        `端口 ${reg.metricsPort || 0}`,
+        `更新 ${formatTime(reg.lastSeenUtc)}`
       ];
-
-      const publicIp = [sanity.publicIPv4, sanity.publicIPv6].filter(Boolean).join(" / ") || "n/a";
 
       return `
         <article class="node">
           <div class="node-top">
             <div>
-              <h3 class="node-name">${escapeHtml(reg.nodeName || "Unnamed node")}</h3>
+              <h3 class="node-name">${escapeHtml(reg.nodeName || "未命名节点")}</h3>
               <div class="node-meta">
                 ${topItems.map((item) => `<span class="pill">${escapeHtml(item)}</span>`).join("")}
               </div>
@@ -737,41 +730,37 @@
 
           <div class="stat-list">
             ${statRow("CPU", fmtPercent(cpu), cpu)}
-            ${statRow("Memory", fmtPercent(mem), mem)}
-            ${statRow("Swap", fmtPercent(swap), swap)}
-            ${statRow("Disk", fmtPercent(disk), disk)}
+            ${statRow("内存", fmtPercent(mem), mem)}
+            ${statRow("交换分区", fmtPercent(swap), swap)}
+            ${statRow("磁盘", fmtPercent(disk), disk)}
           </div>
 
           <div class="sparkline-card">
             <div>
-              <div class="sparkline-title">CPU 24h history</div>
+              <div class="sparkline-title">CPU 24 小时历史</div>
               ${buildSparklineSvg(cpuHistory)}
             </div>
-            <div class="mono muted">${cpuHistory.length} points</div>
+            <div class="mono muted">${cpuHistory.length} 个点</div>
           </div>
 
           <div class="sparkline-card">
             <div>
-              <div class="sparkline-title">Network 24h history</div>
+              <div class="sparkline-title">网络 24 小时历史</div>
               ${buildSparklineSvg(netHistory)}
             </div>
-            <div class="mono muted">Rx + Tx</div>
+            <div class="mono muted">收 + 发</div>
           </div>
 
           <div class="history-grid">
-            ${historyBlock("Model", assets.cpuModelName || "n/a")}
-            ${historyBlock("OS", assets.osPlatform || "n/a")}
-            ${historyBlock("Public IPv4", sanity.publicIPv4 || "n/a")}
-            ${historyBlock("Public IPv6", sanity.publicIPv6 || "n/a")}
-            ${historyBlock("Public IP", publicIp)}
-            ${historyBlock("Disk RO", sanity.diskReadOnlyPanic ? "true" : "false")}
-            ${historyBlock("ChatGPT", sanity.chatGPTUnlocked ? "true" : "false")}
-            ${historyBlock("Rx", fmtBytes(runtime.bootTotalRxBytes || 0))}
-            ${historyBlock("Tx", fmtBytes(runtime.bootTotalTxBytes || 0))}
-            ${historyBlock("Ping v4", runtime.pingV4DelayMs ?? "n/a")}
-            ${historyBlock("Ping v6", runtime.pingV6DelayMs ?? "n/a")}
-            ${historyBlock("Disk R/s", fmtBytes(runtime.diskReadBytesPerSec || 0))}
-            ${historyBlock("Disk W/s", fmtBytes(runtime.diskWriteBytesPerSec || 0))}
+            ${historyBlock("型号", assets.cpuModelName || "暂无")}
+            ${historyBlock("系统", assets.osPlatform || "暂无")}
+            ${historyBlock("磁盘只读", sanity.diskReadOnlyPanic ? "是" : "否")}
+            ${historyBlock("接收", fmtBytes(runtime.bootTotalRxBytes || 0))}
+            ${historyBlock("发送", fmtBytes(runtime.bootTotalTxBytes || 0))}
+            ${historyBlock("IPv4 延迟", runtime.pingV4DelayMs ?? "暂无")}
+            ${historyBlock("IPv6 延迟", runtime.pingV6DelayMs ?? "暂无")}
+            ${historyBlock("磁盘读速", fmtBytes(runtime.diskReadBytesPerSec || 0))}
+            ${historyBlock("磁盘写速", fmtBytes(runtime.diskWriteBytesPerSec || 0))}
           </div>
         </article>
       `;
@@ -779,7 +768,7 @@
 
     function summarizeHealth(nodes) {
       if (!nodes.length) {
-        return { label: "Idle", detail: "No nodes registered yet.", tone: "muted" };
+        return { label: "空闲", detail: "当前还没有节点注册。", tone: "muted" };
       }
 
       let badCount = 0;
@@ -795,14 +784,14 @@
       }
 
       if (badCount > 0) {
-        return { label: "Degraded", detail: `${badCount} node(s) in degraded state, ${warnCount} warning(s).`, tone: "bad" };
+        return { label: "退化", detail: `${badCount} 台节点处于退化状态，${warnCount} 台处于警告状态。`, tone: "bad" };
       }
 
       if (warnCount > 0) {
-        return { label: "Warning", detail: `${warnCount} node(s) need attention.`, tone: "warn" };
+        return { label: "警告", detail: `${warnCount} 台节点需要关注。`, tone: "warn" };
       }
 
-      return { label: "Healthy", detail: "No active alerts in the latest snapshot.", tone: "good" };
+      return { label: "健康", detail: "最新快照中没有活动告警。", tone: "good" };
     }
 
     function groupNodes(nodes) {
@@ -810,7 +799,7 @@
 
       for (const node of nodes) {
         const reg = node.registration || {};
-        const groupName = (reg.groupName || "default").trim() || "default";
+        const groupName = (reg.groupName || "默认").trim() || "默认";
         if (!groups.has(groupName)) {
           groups.set(groupName, []);
         }
@@ -849,16 +838,16 @@
       const activeFilters = [];
 
       if (state.search.trim()) {
-        activeFilters.push(`search="${state.search.trim()}"`);
+        activeFilters.push(`搜索="${state.search.trim()}"`);
       }
 
       if (state.healthFilter !== "all") {
-        activeFilters.push(`health=${state.healthFilter}`);
+        activeFilters.push(`健康=${state.healthFilter}`);
       }
 
       el("nodeCount").textContent = String(totalNodes);
       el("visibleCount").textContent = String(visibleNodes.length);
-      el("filterSummary").textContent = activeFilters.length ? activeFilters.join(" · ") : "No filters active.";
+      el("filterSummary").textContent = activeFilters.length ? activeFilters.join(" · ") : "暂无筛选条件。";
     }
 
     function render(snapshot) {
@@ -872,7 +861,7 @@
 
       snapshot = state.snapshot;
       if (!snapshot) {
-        el("nodes").innerHTML = '<div class="mono muted">No live node snapshots yet.</div>';
+        el("nodes").innerHTML = '<div class="mono muted">当前还没有在线节点快照。</div>';
         return;
       }
 
@@ -931,11 +920,11 @@
                 <summary>
                   <div>
                     <h3 class="group-title">${escapeHtml(group.groupName)}</h3>
-                    <div class="mono muted">${group.items.length} node(s) · ${counts.healthy} healthy · ${counts.warning} warning · ${counts.degraded} degraded</div>
+                    <div class="mono muted">${group.items.length} 台 · ${counts.healthy} 健康 · ${counts.warning} 警告 · ${counts.degraded} 退化</div>
                   </div>
                   <div class="group-meta">
-                    <span class="pill">Visible ${group.items.length}</span>
-                    <span class="pill">Total ${totalNodes}</span>
+                    <span class="pill">可见 ${group.items.length}</span>
+                    <span class="pill">总数 ${totalNodes}</span>
                   </div>
                 </summary>
                 <div class="group-body">
@@ -944,11 +933,11 @@
               </details>
             `;
           }).join("")
-        : '<div class="mono muted">No nodes match the current filters.</div>';
+        : '<div class="mono muted">没有节点符合当前筛选条件。</div>';
 
       el("nodes").innerHTML = markup;
       renderFilters(snapshot, visibleNodes);
-      el("toggleGroupsBtn").textContent = state.forceCollapseAll ? "Expand all groups" : "Collapse all groups";
+      el("toggleGroupsBtn").textContent = state.forceCollapseAll ? "展开全部分组" : "全部折叠";
     }
 
     async function fetchSnapshot() {
@@ -963,15 +952,6 @@
       } catch (err) {
         console.error(err);
       }
-    }
-
-    function startPolling() {
-      const tick = async () => {
-        await fetchSnapshot();
-      };
-
-      tick();
-      pollingTimer = window.setInterval(tick, 5000);
     }
 
     function loadSignalRLibrary() {
@@ -993,7 +973,7 @@
     async function connectSignalR() {
       const signalRSource = await loadSignalRLibrary();
       if (!signalRSource?.HubConnectionBuilder) {
-        el("connState").textContent = "polling";
+        el("connState").textContent = "HTTP";
         return;
       }
 
@@ -1003,27 +983,27 @@
         .build();
 
       connection.on("SnapshotUpdated", (snapshot) => {
-        el("connState").textContent = connection.state;
+        el("connState").textContent = "已连接";
         render(snapshot);
       });
 
       connection.onreconnecting(() => {
-        el("connState").textContent = "reconnecting";
+        el("connState").textContent = "重连中";
       });
 
       connection.onreconnected(() => {
-        el("connState").textContent = "connected";
+        el("connState").textContent = "已连接";
       });
 
       connection.onclose(() => {
-        el("connState").textContent = "disconnected";
+        el("connState").textContent = "已断开";
       });
 
       try {
         await connection.start();
-        el("connState").textContent = "connected";
+        el("connState").textContent = "已连接";
       } catch (err) {
-        el("connState").textContent = "polling";
+        el("connState").textContent = "HTTP";
         console.error(err);
       }
     }
@@ -1065,7 +1045,7 @@
       state.groupOpen.set(details.dataset.group, details.open);
     }, true);
 
-    startPolling();
+    fetchSnapshot();
     connectSignalR();
   </script>
 </body>

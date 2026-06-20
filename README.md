@@ -1,82 +1,82 @@
 # GhostMon
 
-GhostMon is a lightweight .NET 10 probe system built with ASP.NET Core Minimal APIs, Native AOT, Redis, and SignalR.
+GhostMon = `GhostMon.Agent` + `GhostMon.Dashboard`
 
-## Project Layout
+## 核心流程
 
-- `src/GhostMon.Agent` - probe agent
-- `src/GhostMon.Dashboard` - dashboard and history store
-- `src/GhostMon.Contracts` - shared DTOs and source-generated JSON context
-- `deploy` - Linux deployment templates and scripts
-- `docker-compose.yml` - dashboard plus Redis local stack
+- Agent `POST /api/ingest` 到 Dashboard
+- Agent `GET /api/agent-config` 拉取配置
+- Dashboard 写 Redis，读 24 小时历史，广播给前端
 
-## Build
+## 本地运行
 
 ```bash
-dotnet build GhostMon.sln -c Release
-```
-
-## Configuration
-
-### Agent
-- `src/GhostMon.Agent/appsettings.json` or `deploy/templates/agent/appsettings.template.json`
-- `deploy/templates/agent/ghostmon-agent.env.template`
-- App settings keys: `DASHBOARD_BASE_URL`, `MASTER_SERVER_IP`, `SECURITY_TOKEN`, `NODE_NAME`, `GROUP_NAME`, `AGENT_PORT`
-- Environment keys: `ASPNETCORE_ENVIRONMENT`
-
-### Dashboard
-- `src/GhostMon.Dashboard/appsettings.json` or `deploy/templates/dashboard/appsettings.template.json`
-- `deploy/templates/dashboard/ghostmon-dashboard.env.template`
-- App settings keys: `REDIS:CONNECTIONSTRING`, `SECURITY_TOKEN`
-- Environment keys: `ASPNETCORE_ENVIRONMENT`, `ASPNETCORE_URLS`
-
-## Local Run
-
-1. Start Redis and Dashboard:
-
-```bash
-docker compose up -d redis dashboard
-```
-
-2. Start the Agent after setting its config:
-
-```bash
+dotnet run --project src/GhostMon.Dashboard
 dotnet run --project src/GhostMon.Agent
 ```
 
-3. Open the dashboard at `http://localhost:8080`.
+## 配置文件
 
-## Linux Deploy
+- `src/GhostMon.Agent/appsettings.json`
+- `src/GhostMon.Agent/Properties/launchSettings.json`
+- `src/GhostMon.Dashboard/appsettings.json`
+- `src/GhostMon.Dashboard/Properties/launchSettings.json`
 
-See [deploy/README.md](deploy/README.md) for the Linux install companion.
+## 主要配置
 
-Use the provided templates and systemd units:
+### Agent
 
-- `deploy/templates/agent/appsettings.template.json`
-- `deploy/templates/agent/ghostmon-agent.env.template`
-- `deploy/templates/dashboard/appsettings.template.json`
-- `deploy/templates/dashboard/ghostmon-dashboard.env.template`
-- `deploy/systemd/ghostmon-agent.service`
-- `deploy/systemd/ghostmon-dashboard.service`
-- `deploy/sysusers.d/ghostmon.conf`
-- `deploy/tmpfiles.d/ghostmon.conf`
-- `deploy/nginx/ghostmon-dashboard.conf`
-- `deploy/install.sh`
-- `deploy/publish-install.sh`
+| Key | 默认值 |
+| --- | --- |
+| `DashboardBaseUrl` | `http://127.0.0.1:8080` |
+| `SecurityToken` | `replace-with-a-shared-secret` |
+| `NodeName` | `node-01` |
+| `GroupName` | `default` |
+| `AgentPort` | `8081` |
+| `TelemetryIntervalSeconds` | `5` |
+| `PingTimeoutMilliseconds` | `500` |
+| `PingTargetMode` | `Both` |
+| `PingTargets` | `1.1.1.1,2606:4700:4700::1111` |
+| `HostProcPath` | `/proc` |
+| `HostSysPath` | `/sys` |
+| `HostRootPath` | `/` |
+| `HostTmpPath` | `/tmp` |
 
-Install flow:
+### Dashboard
 
-1. Copy the published binaries into `/opt/ghostmon/agent` and `/opt/ghostmon/dashboard`.
-2. Copy the `.env.template` files to `/etc/ghostmon/agent.env` and `/etc/ghostmon/dashboard.env`.
-3. Optionally copy the JSON templates beside each binary as `appsettings.json`.
-4. Install the systemd units and run `systemctl daemon-reload`.
-5. Enable and start `ghostmon-dashboard.service`.
-6. Enable and start `ghostmon-agent.service`.
+| Key | 默认值 |
+| --- | --- |
+| `RedisConnectionString` | `127.0.0.1:6379,abortConnect=false` |
+| `SecurityToken` | `replace-with-a-shared-secret` |
+| `TelemetryIntervalSeconds` | `5` |
+| `PingTimeoutMilliseconds` | `500` |
+| `PingTargetMode` | `Both` |
+| `PingTargets` | `1.1.1.1,2606:4700:4700::1111` |
 
-## Notes
+## 接口
 
-- Public .NET names use `GhostMon`.
-- Linux service and directory names keep the lowercase `ghostmon`.
-- Agent does not reference Redis.
-- JSON serialization uses source-generated contexts for AOT compatibility.
-- Dashboard uses StackExchange.Redis and SignalR for live state and history broadcast.
+- `GET /healthz`
+- `GET /metrics`
+- `GET /api/snapshot`
+- `GET /api/agent-config`
+- `POST /api/ingest`
+
+## 部署
+
+仓库根目录只有一个部署入口：`docker-compose.yml`
+
+- `redis:7-alpine`
+- `GhostMon.Dashboard`
+- `GhostMon.Agent`
+
+```bash
+docker compose up -d --build
+```
+
+## 约束
+
+- Agent 不读取 `uname -r`、`/etc/os-release`、`/proc/version`
+- Agent 对外平台信息固定为 `Linux (x64)`
+- Agent 不引入 `System.Diagnostics`
+- 所有 JSON 序列化都走 `ProbeJsonContext`
+- Agent 不依赖 Redis SDK

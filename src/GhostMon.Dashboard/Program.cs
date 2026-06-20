@@ -1,51 +1,75 @@
 using System.Net;
 using System.Text.Json;
 using GhostMon.Contracts;
+using Microsoft.AspNetCore.SignalR;
 using StackExchange.Redis;
 using GhostMon.Dashboard;
 
 var builder = WebApplication.CreateSlimBuilder(args);
-var settings = DashboardRuntimeSettings.FromConfiguration(builder.Configuration);
+var runtimeSettings = DashboardRuntimeSettings.FromConfiguration(builder.Configuration);
 
+builder.Services.AddSingleton(runtimeSettings);
 builder.Services.AddSingleton<IConnectionMultiplexer>(_ =>
-    ConnectionMultiplexer.Connect(settings.RedisConnectionString));
+    ConnectionMultiplexer.Connect(runtimeSettings.RedisConnectionString));
 builder.Services.AddSingleton<RedisProbeStore>();
-builder.Services.AddHttpClient("agent-poll", client =>
-{
-    client.Timeout = TimeSpan.FromSeconds(6);
-});
 builder.Services
     .AddSignalR()
     .AddJsonProtocol(options =>
     {
         options.PayloadSerializerOptions.TypeInfoResolver = ProbeJsonContext.Default;
     });
-builder.Services.AddHostedService<MetricsPollingHostedService>();
 
 var app = builder.Build();
+
+await app.Services.GetRequiredService<RedisProbeStore>().RefreshSnapshotAsync();
 
 app.UseDefaultFiles();
 app.UseStaticFiles();
 
-app.MapGet("/healthz", () => Results.Text("ok", "text/plain"));
+app.MapGet("/healthz", static () => Results.Text("ok", "text/plain"));
+app.MapGet("/api/snapshot", MapSnapshot);
+app.MapGet("/api/agent-config", GetAgentConfig);
+app.MapPost("/api/ingest", IngestNode);
+app.MapHub<ProbeHub>("/hubs/probe");
 
-app.MapGet("/api/snapshot", async (RedisProbeStore store) =>
-{
-    var snapshot = await store.ReadDashboardSnapshotAsync();
-    return Results.Json(snapshot, ProbeJsonContext.Default.DashboardSnapshot);
-});
+app.Logger.LogInformation("GhostMon Dashboard started.");
 
-app.MapPost("/api/register-node", async (HttpContext context, RedisProbeStore store, CancellationToken cancellationToken) =>
+app.Run();
+
+static IResult MapSnapshot(RedisProbeStore store)
 {
-    if (!IsValidToken(context, settings.SecurityToken))
+    return Results.Json(store.ReadDashboardSnapshot(), ProbeJsonContext.Default.DashboardSnapshot);
+}
+
+static IResult GetAgentConfig(DashboardRuntimeSettings runtimeSettings)
+{
+    var config = new AgentRuntimeConfig
+    {
+        TelemetryIntervalSeconds = runtimeSettings.TelemetryIntervalSeconds,
+        PingTimeoutMilliseconds = runtimeSettings.PingTimeoutMilliseconds,
+        PingTargetMode = runtimeSettings.PingTargetMode,
+        PingTargets = runtimeSettings.PingTargets
+    };
+
+    return Results.Json(config, ProbeJsonContext.Default.AgentRuntimeConfig);
+}
+
+static async Task<IResult> IngestNode(
+    HttpContext context,
+    RedisProbeStore store,
+    IHubContext<ProbeHub> hubContext,
+    DashboardRuntimeSettings runtimeSettings,
+    CancellationToken cancellationToken)
+{
+    if (!IsValidToken(context, runtimeSettings.SecurityToken))
     {
         return Results.StatusCode(StatusCodes.Status403Forbidden);
     }
 
-    NodeRegistrationRequest? request;
+    NodeTelemetryReport? request;
     try
     {
-        request = await context.Request.ReadFromJsonAsync(ProbeJsonContext.Default.NodeRegistrationRequest, cancellationToken);
+        request = await context.Request.ReadFromJsonAsync(ProbeJsonContext.Default.NodeTelemetryReport, cancellationToken);
     }
     catch (JsonException)
     {
@@ -67,23 +91,27 @@ app.MapPost("/api/register-node", async (HttpContext context, RedisProbeStore st
     var record = new NodeRegistryRecord
     {
         RemoteIp = remoteIp,
-        AgentBaseUrl = BuildAgentBaseUrl(remoteIp, request.MetricsPort),
         NodeName = request.NodeName,
         GroupName = request.GroupName,
         MetricsPort = request.MetricsPort,
         AgentVersion = request.AgentVersion,
         RegisteredUtc = now,
         LastSeenUtc = now,
-        Assets = request.Assets
+        Assets = request.Metrics.Assets,
+        CurrentMetrics = request.Metrics
     };
 
-    await store.UpsertNodeAsync(record);
-    return Results.Json(record, ProbeJsonContext.Default.NodeRegistryRecord);
-});
+    var snapshot = new HistoricalSnapshot
+    {
+        CapturedAtUtc = now,
+        Metrics = request.Metrics
+    };
 
-app.MapHub<ProbeHub>("/hubs/probe");
+    var dashboardSnapshot = await store.UpsertNodeAsync(record, snapshot);
+    await hubContext.Clients.All.SendAsync("SnapshotUpdated", dashboardSnapshot, cancellationToken);
 
-app.Run();
+    return Results.NoContent();
+}
 
 static bool IsValidToken(HttpContext context, string expectedToken)
 {
@@ -126,15 +154,4 @@ static string? NormalizeIp(string? raw)
     }
 
     return parsed.ToString();
-}
-
-static string BuildAgentBaseUrl(string remoteIp, int metricsPort)
-{
-    if (IPAddress.TryParse(remoteIp, out var parsed) &&
-        parsed.AddressFamily == System.Net.Sockets.AddressFamily.InterNetworkV6)
-    {
-        return $"http://[{parsed}]:{metricsPort}";
-    }
-
-    return $"http://{remoteIp}:{metricsPort}";
 }

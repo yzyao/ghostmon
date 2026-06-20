@@ -1,69 +1,32 @@
-using System.Net;
 using GhostMon.Agent;
 using GhostMon.Contracts;
 
 var builder = WebApplication.CreateSlimBuilder(args);
-var settings = AgentRuntimeSettings.FromConfiguration(builder.Configuration);
+var runtimeSettings = AgentRuntimeSettings.FromConfiguration(builder.Configuration);
+var runtimeState = new AgentRuntimeState(runtimeSettings);
 
-builder.WebHost.UseUrls($"http://0.0.0.0:{settings.MetricsPort}");
-builder.Services.AddSingleton(settings);
-builder.Services.AddHttpClient("self-probe", client =>
-{
-    client.Timeout = TimeSpan.FromSeconds(3);
-});
-builder.Services.AddHttpClient("registration", client =>
+builder.WebHost.UseUrls($"http://0.0.0.0:{runtimeSettings.MetricsPort}");
+builder.Services.AddSingleton(runtimeSettings);
+builder.Services.AddSingleton(runtimeState);
+builder.Services.AddHttpClient("dashboard", client =>
 {
     client.Timeout = TimeSpan.FromSeconds(5);
 });
 builder.Services.AddSingleton<AgentMetricsService>();
-builder.Services.AddHostedService<AgentRegistrationHostedService>();
+builder.Services.AddHostedService<AgentTelemetryHostedService>();
+builder.Services.AddHostedService<AgentConfigSyncHostedService>();
 
 var app = builder.Build();
 
-app.Use(async (context, next) =>
-{
-    if (IsAllowedMaster(context.Connection.RemoteIpAddress, settings.MasterServerIp))
-    {
-        await next();
-        return;
-    }
+app.Logger.LogInformation("GhostMon Agent started on port {Port}.", runtimeSettings.MetricsPort);
 
-    context.Response.StatusCode = StatusCodes.Status403Forbidden;
-});
-
-app.MapGet("/metrics", async (AgentMetricsService metricsService, CancellationToken cancellationToken) =>
-{
-    var metrics = await metricsService.GetMetricsAsync(cancellationToken);
-    return Results.Json(metrics, ProbeJsonContext.Default.ProbeMetrics);
-});
+app.MapGet("/healthz", static () => Results.Text("ok", "text/plain"));
+app.MapGet("/metrics", MapMetrics);
 
 app.Run();
 
-static bool IsAllowedMaster(IPAddress? remoteAddress, string masterServerIp)
+static async Task<IResult> MapMetrics(AgentMetricsService metricsService, CancellationToken cancellationToken)
 {
-    var remote = NormalizeIp(remoteAddress?.ToString());
-    var allowed = NormalizeIp(masterServerIp);
-    return remote is not null &&
-           allowed is not null &&
-           string.Equals(remote, allowed, StringComparison.Ordinal);
-}
-
-static string? NormalizeIp(string? raw)
-{
-    if (string.IsNullOrWhiteSpace(raw))
-    {
-        return null;
-    }
-
-    if (!IPAddress.TryParse(raw, out var parsed))
-    {
-        return raw.Trim();
-    }
-
-    if (parsed.AddressFamily == System.Net.Sockets.AddressFamily.InterNetworkV6 && parsed.IsIPv4MappedToIPv6)
-    {
-        return parsed.MapToIPv4().ToString();
-    }
-
-    return parsed.ToString();
+    var metrics = await metricsService.GetMetricsAsync(cancellationToken);
+    return Results.Json(metrics, ProbeJsonContext.Default.ProbeMetrics);
 }

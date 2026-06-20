@@ -44,13 +44,7 @@ public readonly record struct ProbeRuntimeInfo
 
 public sealed record class ProbeSanityInfo
 {
-    public string? PublicIPv4 { get; init; }
-
-    public string? PublicIPv6 { get; init; }
-
     public bool DiskReadOnlyPanic { get; init; }
-
-    public bool ChatGPTUnlocked { get; init; }
 }
 
 public sealed record class ProbeMetrics
@@ -62,7 +56,7 @@ public sealed record class ProbeMetrics
     public ProbeSanityInfo Sanity { get; init; } = new();
 }
 
-public sealed record class NodeRegistrationRequest
+public sealed record class NodeTelemetryReport
 {
     public string NodeName { get; init; } = string.Empty;
 
@@ -72,14 +66,30 @@ public sealed record class NodeRegistrationRequest
 
     public string AgentVersion { get; init; } = "GhostMon.Agent/1.0.0";
 
-    public ProbeAssetsInfo Assets { get; init; } = new();
+    public ProbeMetrics Metrics { get; init; } = new();
+}
+
+public sealed record class AgentRuntimeConfig
+{
+    public int TelemetryIntervalSeconds { get; init; } = 5;
+
+    public int PingTimeoutMilliseconds { get; init; } = 500;
+
+    public PingTargetMode PingTargetMode { get; init; } = PingTargetMode.Both;
+
+    public string[] PingTargets { get; init; } = Array.Empty<string>();
+}
+
+public enum PingTargetMode
+{
+    V4 = 1,
+    V6 = 2,
+    Both = 3
 }
 
 public sealed record class NodeRegistryRecord
 {
     public string RemoteIp { get; init; } = string.Empty;
-
-    public string AgentBaseUrl { get; init; } = string.Empty;
 
     public string NodeName { get; init; } = string.Empty;
 
@@ -94,6 +104,8 @@ public sealed record class NodeRegistryRecord
     public DateTimeOffset LastSeenUtc { get; init; }
 
     public ProbeAssetsInfo Assets { get; init; } = new();
+
+    public ProbeMetrics? CurrentMetrics { get; init; }
 }
 
 public sealed record class HistoricalSnapshot

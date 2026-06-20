@@ -1,12 +1,19 @@
 {
   "profiles": {
-    "GhostMon.Dashboard": {
+    "Dashboard": {
       "commandName": "Project",
       "launchBrowser": true,
       "environmentVariables": {
-        "ASPNETCORE_ENVIRONMENT": "Development"
+        "ASPNETCORE_ENVIRONMENT": "Development",
+        "DOTNET_ENVIRONMENT": "Development",
+        "RedisConnectionString": "127.0.0.1:6379,abortConnect=false",
+        "SecurityToken": "change-this-token",
+        "TelemetryIntervalSeconds": "5",
+        "PingTimeoutMilliseconds": "500",
+        "PingTargetMode": "Both",
+        "PingTargets": "1.1.1.1,2606:4700:4700::1111"
       },
-      "applicationUrl": "https://localhost:10704;http://localhost:10705"
+      "applicationUrl": "http://localhost:8080"
     }
   }
 }
