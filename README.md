@@ -15,14 +15,7 @@ dotnet run --project src/GhostMon.Dashboard
 dotnet run --project src/GhostMon.Agent
 ```
 
-## 配置文件
-
-- `src/GhostMon.Agent/appsettings.json`
-- `src/GhostMon.Agent/Properties/launchSettings.json`
-- `src/GhostMon.Dashboard/appsettings.json`
-- `src/GhostMon.Dashboard/Properties/launchSettings.json`
-
-## 主要配置
+## 配置模板
 
 ### Agent
 
@@ -53,6 +46,15 @@ dotnet run --project src/GhostMon.Agent
 | `PingTargetMode` | `Both` |
 | `PingTargets` | `1.1.1.1,2606:4700:4700::1111` |
 
+## 文件
+
+- `src/GhostMon.Agent/appsettings.json`
+- `src/GhostMon.Agent/Properties/launchSettings.json`
+- `src/GhostMon.Dashboard/appsettings.json`
+- `src/GhostMon.Dashboard/Properties/launchSettings.json`
+- `.env.example`
+- `docker-compose.yml`
+
 ## 接口
 
 - `GET /healthz`
@@ -62,12 +64,6 @@ dotnet run --project src/GhostMon.Agent
 - `POST /api/ingest`
 
 ## 部署
-
-仓库根目录只有一个部署入口：`docker-compose.yml`
-
-- `redis:7-alpine`
-- `GhostMon.Dashboard`
-- `GhostMon.Agent`
 
 ```bash
 docker compose up -d --build

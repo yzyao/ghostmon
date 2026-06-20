@@ -8,7 +8,7 @@ var runtimeState = new AgentRuntimeState(runtimeSettings);
 builder.WebHost.UseUrls($"http://0.0.0.0:{runtimeSettings.MetricsPort}");
 builder.Services.AddSingleton(runtimeSettings);
 builder.Services.AddSingleton(runtimeState);
-builder.Services.AddHttpClient("dashboard", client =>
+builder.Services.AddHttpClient(AgentEndpoints.DashboardHttpClient, client =>
 {
     client.Timeout = TimeSpan.FromSeconds(5);
 });

@@ -27,10 +27,10 @@ app.UseDefaultFiles();
 app.UseStaticFiles();
 
 app.MapGet("/healthz", static () => Results.Text("ok", "text/plain"));
-app.MapGet("/api/snapshot", MapSnapshot);
-app.MapGet("/api/agent-config", GetAgentConfig);
-app.MapPost("/api/ingest", IngestNode);
-app.MapHub<ProbeHub>("/hubs/probe");
+app.MapGet(DashboardConstants.SnapshotPath, MapSnapshot);
+app.MapGet(DashboardConstants.AgentConfigPath, GetAgentConfig);
+app.MapPost(DashboardConstants.IngestPath, IngestNode);
+app.MapHub<ProbeHub>(DashboardConstants.HubPath);
 
 app.Logger.LogInformation("GhostMon Dashboard started.");
 
@@ -108,21 +108,21 @@ static async Task<IResult> IngestNode(
     };
 
     var dashboardSnapshot = await store.UpsertNodeAsync(record, snapshot);
-    await hubContext.Clients.All.SendAsync("SnapshotUpdated", dashboardSnapshot, cancellationToken);
+    await hubContext.Clients.All.SendAsync(DashboardConstants.SnapshotUpdatedEvent, dashboardSnapshot, cancellationToken);
 
     return Results.NoContent();
 }
 
 static bool IsValidToken(HttpContext context, string expectedToken)
 {
-    var incomingToken = context.Request.Headers["X-Security-Token"].ToString();
+    var incomingToken = context.Request.Headers[DashboardConstants.SecurityTokenHeader].ToString();
     return !string.IsNullOrWhiteSpace(incomingToken) &&
            string.Equals(incomingToken, expectedToken, StringComparison.Ordinal);
 }
 
 static string ResolveClientIp(HttpContext context)
 {
-    var forwardedFor = context.Request.Headers["X-Forwarded-For"].ToString();
+    var forwardedFor = context.Request.Headers[DashboardConstants.ForwardedForHeader].ToString();
     if (!string.IsNullOrWhiteSpace(forwardedFor))
     {
         var first = forwardedFor.Split(',', StringSplitOptions.TrimEntries | StringSplitOptions.RemoveEmptyEntries).FirstOrDefault();

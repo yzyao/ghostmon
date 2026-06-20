@@ -505,6 +505,20 @@
 
     const el = (id) => document.getElementById(id);
 
+    function applySnapshot(snapshot) {
+      if (!snapshot) {
+        return;
+      }
+
+      const json = JSON.stringify(snapshot);
+      if (json === state.lastSnapshotJson) {
+        return;
+      }
+
+      state.lastSnapshotJson = json;
+      state.snapshot = snapshot;
+    }
+
     function fmtPercent(value) {
       return `${Number(value || 0).toFixed(1)}%`;
     }
@@ -833,8 +847,7 @@
       });
     }
 
-    function renderFilters(snapshot, visibleNodes) {
-      const totalNodes = Array.isArray(snapshot?.nodes) ? snapshot.nodes.length : 0;
+    function renderFilters(totalNodes, visibleCount) {
       const activeFilters = [];
 
       if (state.search.trim()) {
@@ -846,18 +859,12 @@
       }
 
       el("nodeCount").textContent = String(totalNodes);
-      el("visibleCount").textContent = String(visibleNodes.length);
+      el("visibleCount").textContent = String(visibleCount);
       el("filterSummary").textContent = activeFilters.length ? activeFilters.join(" · ") : "暂无筛选条件。";
     }
 
     function render(snapshot) {
-      if (snapshot) {
-        const json = JSON.stringify(snapshot);
-        if (json !== state.lastSnapshotJson) {
-          state.lastSnapshotJson = json;
-          state.snapshot = snapshot;
-        }
-      }
+      applySnapshot(snapshot);
 
       snapshot = state.snapshot;
       if (!snapshot) {
@@ -874,7 +881,6 @@
       });
 
       if (renderKey === state.lastRenderKey) {
-        renderFilters(snapshot, visibleNodes);
         return;
       }
 
@@ -936,7 +942,7 @@
         : '<div class="mono muted">没有节点符合当前筛选条件。</div>';
 
       el("nodes").innerHTML = markup;
-      renderFilters(snapshot, visibleNodes);
+      renderFilters(totalNodes, visibleNodes.length);
       el("toggleGroupsBtn").textContent = state.forceCollapseAll ? "展开全部分组" : "全部折叠";
     }
 

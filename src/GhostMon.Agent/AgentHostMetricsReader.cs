@@ -1,4 +1,3 @@
-using System.Net;
 using GhostMon.Contracts;
 
 namespace GhostMon.Agent;

@@ -29,7 +29,7 @@ public sealed class AgentConfigSyncHostedService : BackgroundService
         while (!stoppingToken.IsCancellationRequested)
         {
             await SyncAsync(stoppingToken);
-            await DelayAsync(SyncInterval, stoppingToken);
+            await AgentBackgroundWorker.DelayAsync(SyncInterval, stoppingToken);
         }
     }
 
@@ -37,10 +37,10 @@ public sealed class AgentConfigSyncHostedService : BackgroundService
     {
         try
         {
-            var client = _httpClientFactory.CreateClient("dashboard");
+            var client = _httpClientFactory.CreateClient(AgentEndpoints.DashboardHttpClient);
             using var request = new HttpRequestMessage(
                 HttpMethod.Get,
-                new Uri($"{_settings.DashboardBaseUrl.TrimEnd('/')}/api/agent-config"));
+                new Uri(new Uri(_settings.DashboardBaseUrl.TrimEnd('/') + "/"), AgentEndpoints.AgentConfigPath.TrimStart('/')));
             request.Headers.TryAddWithoutValidation("X-Security-Token", _settings.SecurityToken);
 
             using var response = await client.SendAsync(request, cancellationToken);
@@ -74,22 +74,6 @@ public sealed class AgentConfigSyncHostedService : BackgroundService
         catch (Exception ex)
         {
             _logger.LogWarning(ex, "Agent config sync failed.");
-        }
-    }
-
-    private static async Task DelayAsync(TimeSpan interval, CancellationToken cancellationToken)
-    {
-        if (interval <= TimeSpan.Zero)
-        {
-            return;
-        }
-
-        try
-        {
-            await Task.Delay(interval, cancellationToken);
-        }
-        catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
-        {
         }
     }
 }

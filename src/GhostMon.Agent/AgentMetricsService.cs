@@ -36,13 +36,8 @@ public sealed class AgentMetricsService
         var pingPlan = ResolvePingPlan(snapshot);
         var timeout = TimeSpan.FromMilliseconds(snapshot.PingTimeoutMilliseconds);
 
-        var pingV4Task = pingPlan.V4Target is null
-            ? Task.FromResult<int?>(null)
-            : RetryAsync(() => MeasurePingAsync(pingPlan.V4Target, timeout, cancellationToken), cancellationToken);
-
-        var pingV6Task = pingPlan.V6Target is null
-            ? Task.FromResult<int?>(null)
-            : RetryAsync(() => MeasurePingAsync(pingPlan.V6Target, timeout, cancellationToken), cancellationToken);
+        var pingV4Task = CreatePingTask(pingPlan.V4Target, timeout, cancellationToken);
+        var pingV6Task = CreatePingTask(pingPlan.V6Target, timeout, cancellationToken);
 
         await Task.WhenAll(pingV4Task, pingV6Task);
 
@@ -72,20 +67,16 @@ public sealed class AgentMetricsService
 
     private static PingPlan ResolvePingPlan(AgentRuntimeState.RuntimeSnapshot snapshot)
     {
-        var explicitTargets = snapshot.PingTargets
-            .Where(value => !string.IsNullOrWhiteSpace(value))
-            .Select(value => value.Trim())
-            .Distinct(StringComparer.Ordinal)
-            .Select(value => IPAddress.TryParse(value, out var parsed) ? parsed : null)
-            .Where(value => value is not null)
-            .Select(value => value!)
-            .ToArray();
-
         IPAddress? v4Target = null;
         IPAddress? v6Target = null;
 
-        foreach (var target in explicitTargets)
+        foreach (var value in snapshot.PingTargets)
         {
+            if (string.IsNullOrWhiteSpace(value) || !IPAddress.TryParse(value.Trim(), out var target))
+            {
+                continue;
+            }
+
             if (target.AddressFamily == System.Net.Sockets.AddressFamily.InterNetwork && v4Target is null)
             {
                 v4Target = target;
@@ -104,6 +95,13 @@ public sealed class AgentMetricsService
             PingTargetMode.V6 => new PingPlan(null, v6Target ?? FallbackV6Target),
             _ => new PingPlan(v4Target ?? FallbackV4Target, v6Target ?? FallbackV6Target)
         };
+    }
+
+    private static Task<int?> CreatePingTask(IPAddress? target, TimeSpan timeout, CancellationToken cancellationToken)
+    {
+        return target is null
+            ? Task.FromResult<int?>(null)
+            : RetryAsync(() => MeasurePingAsync(target, timeout, cancellationToken), cancellationToken);
     }
 
     private static async Task<int?> RetryAsync(Func<Task<int?>> action, CancellationToken cancellationToken)

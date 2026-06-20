@@ -30,7 +30,7 @@ public sealed class AgentTelemetryHostedService : BackgroundService
         while (!stoppingToken.IsCancellationRequested)
         {
             await PushTelemetryAsync(stoppingToken);
-            await DelayAsync(TimeSpan.FromSeconds(_state.Snapshot.TelemetryIntervalSeconds), stoppingToken);
+            await AgentBackgroundWorker.DelayAsync(TimeSpan.FromSeconds(_state.Snapshot.TelemetryIntervalSeconds), stoppingToken);
         }
     }
 
@@ -38,8 +38,8 @@ public sealed class AgentTelemetryHostedService : BackgroundService
     {
         try
         {
-            var payload = await BuildPayloadAsync(cancellationToken);
-            var client = _httpClientFactory.CreateClient("dashboard");
+            var payload = await CreateTelemetryReportAsync(cancellationToken);
+            var client = _httpClientFactory.CreateClient(AgentEndpoints.DashboardHttpClient);
             using var response = await SendWithRetryAsync(client, payload, cancellationToken);
 
             if (response is null)
@@ -69,19 +69,6 @@ public sealed class AgentTelemetryHostedService : BackgroundService
         }
     }
 
-    private async Task<NodeTelemetryReport> BuildPayloadAsync(CancellationToken cancellationToken)
-    {
-        var metrics = await _metricsService.GetMetricsAsync(cancellationToken);
-        return new NodeTelemetryReport
-        {
-            NodeName = _settings.NodeName,
-            GroupName = _settings.GroupName,
-            MetricsPort = _settings.MetricsPort,
-            AgentVersion = "GhostMon.Agent/1.0.0",
-            Metrics = metrics
-        };
-    }
-
     private async Task<HttpResponseMessage?> SendWithRetryAsync(
         HttpClient client,
         NodeTelemetryReport payload,
@@ -94,18 +81,16 @@ public sealed class AgentTelemetryHostedService : BackgroundService
         {
             cancellationToken.ThrowIfCancellationRequested();
 
-            HttpResponseMessage? response = null;
-
             try
             {
                 using var request = new HttpRequestMessage(
                     HttpMethod.Post,
-                    new Uri($"{_settings.DashboardBaseUrl.TrimEnd('/')}/api/ingest"));
+                    new Uri(new Uri(_settings.DashboardBaseUrl.TrimEnd('/') + "/"), AgentEndpoints.TelemetryPath.TrimStart('/')));
 
                 request.Headers.TryAddWithoutValidation("X-Security-Token", _settings.SecurityToken);
                 request.Content = JsonContent.Create(payload, ProbeJsonContext.Default.NodeTelemetryReport);
 
-                response = await client.SendAsync(request, cancellationToken);
+                var response = await client.SendAsync(request, cancellationToken);
                 if (response.IsSuccessStatusCode || attempt >= maxAttempts)
                 {
                     return response;
@@ -119,7 +104,6 @@ public sealed class AgentTelemetryHostedService : BackgroundService
             }
             catch
             {
-                response?.Dispose();
                 if (attempt >= maxAttempts)
                 {
                     return null;
@@ -133,19 +117,16 @@ public sealed class AgentTelemetryHostedService : BackgroundService
         return null;
     }
 
-    private static async Task DelayAsync(TimeSpan interval, CancellationToken cancellationToken)
+    private async Task<NodeTelemetryReport> CreateTelemetryReportAsync(CancellationToken cancellationToken)
     {
-        if (interval <= TimeSpan.Zero)
+        var metrics = await _metricsService.GetMetricsAsync(cancellationToken);
+        return new NodeTelemetryReport
         {
-            return;
-        }
-
-        try
-        {
-            await Task.Delay(interval, cancellationToken);
-        }
-        catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
-        {
-        }
+            NodeName = _settings.NodeName,
+            GroupName = _settings.GroupName,
+            MetricsPort = _settings.MetricsPort,
+            AgentVersion = AgentEndpoints.AgentVersion,
+            Metrics = metrics
+        };
     }
 }

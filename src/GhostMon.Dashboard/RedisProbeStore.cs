@@ -7,7 +7,6 @@ namespace GhostMon.Dashboard;
 
 public sealed class RedisProbeStore
 {
-    private const string ActiveNodesKey = "ghostmon:nodes:active";
     private const int MaxHistoryLength = 17_280;
 
     private readonly object _gate = new();
@@ -29,7 +28,7 @@ public sealed class RedisProbeStore
         var snapshotJson = SerializeJson(snapshot, ProbeJsonContext.Default.HistoricalSnapshot);
 
         var historyKey = BuildHistoryKey(record);
-        var upsertNodeTask = _database.HashSetAsync(ActiveNodesKey, nodeIdentity, recordJson);
+        var upsertNodeTask = _database.HashSetAsync(DashboardConstants.RedisActiveNodesKey, nodeIdentity, recordJson);
         var pushHistoryTask = _database.ListLeftPushAsync(historyKey, snapshotJson);
 
         await Task.WhenAll(upsertNodeTask, pushHistoryTask);
@@ -47,12 +46,7 @@ public sealed class RedisProbeStore
 
     public async Task<DashboardSnapshot> RefreshSnapshotAsync()
     {
-        var nodes = await ReadAllNodesAsync();
-        var snapshots = await Task.WhenAll(nodes.Select(async node =>
-        {
-            var history = await ReadHistoryAsync(node);
-            return BuildNodeBroadcastSnapshot(node, history);
-        }));
+        var snapshots = await ReadBroadcastSnapshotsAsync();
 
         lock (_gate)
         {
@@ -66,9 +60,24 @@ public sealed class RedisProbeStore
         }
     }
 
-    public async Task<NodeRegistryRecord[]> ReadAllNodesAsync()
+    private async Task<NodeBroadcastSnapshot[]> ReadBroadcastSnapshotsAsync()
     {
-        var entries = await _database.HashGetAllAsync(ActiveNodesKey);
+        var nodes = await ReadAllNodesAsync();
+        var snapshots = new NodeBroadcastSnapshot[nodes.Length];
+
+        for (var index = 0; index < nodes.Length; index++)
+        {
+            var node = nodes[index];
+            var history = await ReadHistoryAsync(node);
+            snapshots[index] = BuildNodeBroadcastSnapshot(node, history);
+        }
+
+        return snapshots;
+    }
+
+    private async Task<NodeRegistryRecord[]> ReadAllNodesAsync()
+    {
+        var entries = await _database.HashGetAllAsync(DashboardConstants.RedisActiveNodesKey);
         var nodes = new List<NodeRegistryRecord>(entries.Length);
 
         foreach (var entry in entries)
@@ -87,7 +96,7 @@ public sealed class RedisProbeStore
             .ToArray();
     }
 
-    public async Task<HistoricalSnapshot[]> ReadHistoryAsync(NodeRegistryRecord record)
+    private async Task<HistoricalSnapshot[]> ReadHistoryAsync(NodeRegistryRecord record)
     {
         var values = await _database.ListRangeAsync(BuildHistoryKey(record), 0, -1);
         var history = new List<HistoricalSnapshot>(values.Length);
@@ -104,9 +113,9 @@ public sealed class RedisProbeStore
         return history.ToArray();
     }
 
-    public static string BuildHistoryKey(NodeRegistryRecord record) => $"ghostmon:nodes:history:{BuildNodeIdentity(record)}";
+    private static string BuildHistoryKey(NodeRegistryRecord record) => $"{DashboardConstants.RedisHistoryKeyPrefix}{BuildNodeIdentity(record)}";
 
-    public static string BuildNodeIdentity(NodeRegistryRecord record) => $"{record.RemoteIp}:{record.MetricsPort}";
+    private static string BuildNodeIdentity(NodeRegistryRecord record) => $"{record.RemoteIp}:{record.MetricsPort}";
 
     private DashboardSnapshot ApplyUpsertToCache(NodeRegistryRecord record, HistoricalSnapshot snapshot)
     {
@@ -114,10 +123,7 @@ public sealed class RedisProbeStore
         {
             var nodeIdentity = BuildNodeIdentity(record);
             var history = PrependHistory(snapshot, FindHistory(nodeIdentity));
-            var updatedNode = BuildNodeBroadcastSnapshot(record, history);
-
-            var existingNodes = _cachedSnapshot.Nodes;
-            var updatedNodes = ReplaceOrAddNode(existingNodes, updatedNode);
+            var updatedNodes = ReplaceOrAddNode(_cachedSnapshot.Nodes, BuildNodeBroadcastSnapshot(record, history));
 
             _cachedSnapshot = new DashboardSnapshot
             {
@@ -187,11 +193,24 @@ public sealed class RedisProbeStore
             updatedNodes.Add(updatedNode);
         }
 
-        return updatedNodes
-            .OrderBy(node => node.Registration.GroupName)
-            .ThenBy(node => node.Registration.NodeName)
-            .ThenBy(node => node.Registration.RemoteIp)
-            .ToArray();
+        updatedNodes.Sort(static (left, right) =>
+        {
+            var compare = string.Compare(left.Registration.GroupName, right.Registration.GroupName, StringComparison.Ordinal);
+            if (compare != 0)
+            {
+                return compare;
+            }
+
+            compare = string.Compare(left.Registration.NodeName, right.Registration.NodeName, StringComparison.Ordinal);
+            if (compare != 0)
+            {
+                return compare;
+            }
+
+            return string.Compare(left.Registration.RemoteIp, right.Registration.RemoteIp, StringComparison.Ordinal);
+        });
+
+        return updatedNodes.ToArray();
     }
 
     private static string SerializeJson<T>(T value, JsonTypeInfo<T> typeInfo)

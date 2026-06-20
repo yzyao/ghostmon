@@ -22,8 +22,8 @@ services:
       - redis
     environment:
       ASPNETCORE_URLS: http://0.0.0.0:8080
-      RedisConnectionString: ${RedisConnectionString:-redis:6379,abortConnect=false}
       SecurityToken: ${SecurityToken:-change-this-token}
+      RedisConnectionString: ${RedisConnectionString:-redis:6379,abortConnect=false}
       TelemetryIntervalSeconds: ${TelemetryIntervalSeconds:-5}
       PingTimeoutMilliseconds: ${PingTimeoutMilliseconds:-500}
       PingTargetMode: ${PingTargetMode:-Both}
@@ -39,8 +39,8 @@ services:
     depends_on:
       - dashboard
     environment:
-      DashboardBaseUrl: ${DashboardBaseUrl:-http://dashboard:8080}
       SecurityToken: ${SecurityToken:-change-this-token}
+      DashboardBaseUrl: ${DashboardBaseUrl:-http://dashboard:8080}
       NodeName: ${NodeName:-node-01}
       GroupName: ${GroupName:-default}
       AgentPort: ${AgentPort:-8081}
