@@ -22,12 +22,12 @@ services:
       - redis
     environment:
       ASPNETCORE_URLS: http://0.0.0.0:8080
-      SecurityToken: ${SecurityToken:-change-this-token}
       RedisConnectionString: ${RedisConnectionString:-redis:6379,abortConnect=false}
+      SecurityToken: ${SecurityToken:-replace-with-a-shared-secret}
       TelemetryIntervalSeconds: ${TelemetryIntervalSeconds:-5}
       PingTimeoutMilliseconds: ${PingTimeoutMilliseconds:-500}
       PingTargetMode: ${PingTargetMode:-Both}
-      PingTargets: ${PingTargets:-1.1.1.1,2606:4700:4700::1111}
+      PingTargets: ${PingTargets:-}
     ports:
       - "8080:8080"
     restart: unless-stopped
@@ -39,15 +39,15 @@ services:
     depends_on:
       - dashboard
     environment:
-      SecurityToken: ${SecurityToken:-change-this-token}
       DashboardBaseUrl: ${DashboardBaseUrl:-http://dashboard:8080}
+      SecurityToken: ${SecurityToken:-replace-with-a-shared-secret}
       NodeName: ${NodeName:-node-01}
       GroupName: ${GroupName:-default}
       AgentPort: ${AgentPort:-8081}
       TelemetryIntervalSeconds: ${TelemetryIntervalSeconds:-5}
       PingTimeoutMilliseconds: ${PingTimeoutMilliseconds:-500}
       PingTargetMode: ${PingTargetMode:-Both}
-      PingTargets: ${PingTargets:-1.1.1.1,2606:4700:4700::1111}
+      PingTargets: ${PingTargets:-}
       HostProcPath: ${HostProcPath:-/host-proc}
       HostSysPath: ${HostSysPath:-/host-sys}
       HostRootPath: ${HostRootPath:-/host-root}

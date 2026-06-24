@@ -64,12 +64,18 @@ public sealed class RedisProbeStore
     {
         var nodes = await ReadAllNodesAsync();
         var snapshots = new NodeBroadcastSnapshot[nodes.Length];
+        var historyTasks = new Task<HistoricalSnapshot[]>[nodes.Length];
 
         for (var index = 0; index < nodes.Length; index++)
         {
-            var node = nodes[index];
-            var history = await ReadHistoryAsync(node);
-            snapshots[index] = BuildNodeBroadcastSnapshot(node, history);
+            historyTasks[index] = ReadHistoryAsync(nodes[index]);
+        }
+
+        await Task.WhenAll(historyTasks);
+
+        for (var index = 0; index < nodes.Length; index++)
+        {
+            snapshots[index] = BuildNodeBroadcastSnapshot(nodes[index], historyTasks[index].Result);
         }
 
         return snapshots;

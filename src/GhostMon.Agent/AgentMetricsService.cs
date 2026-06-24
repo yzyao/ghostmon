@@ -6,9 +6,6 @@ namespace GhostMon.Agent;
 
 public sealed class AgentMetricsService
 {
-    private static readonly IPAddress FallbackV4Target = IPAddress.Parse("1.1.1.1");
-    private static readonly IPAddress FallbackV6Target = IPAddress.Parse("2606:4700:4700::1111");
-
     private readonly AgentRuntimeSettings _settings;
     private readonly AgentRuntimeState _state;
     private readonly object _gate = new();
@@ -67,6 +64,11 @@ public sealed class AgentMetricsService
 
     private static PingPlan ResolvePingPlan(AgentRuntimeState.RuntimeSnapshot snapshot)
     {
+        if (snapshot.PingTargets.Length == 0)
+        {
+            return default;
+        }
+
         IPAddress? v4Target = null;
         IPAddress? v6Target = null;
 
@@ -91,9 +93,9 @@ public sealed class AgentMetricsService
 
         return snapshot.PingTargetMode switch
         {
-            PingTargetMode.V4 => new PingPlan(v4Target ?? FallbackV4Target, null),
-            PingTargetMode.V6 => new PingPlan(null, v6Target ?? FallbackV6Target),
-            _ => new PingPlan(v4Target ?? FallbackV4Target, v6Target ?? FallbackV6Target)
+            PingTargetMode.V4 => v4Target is null ? default : new PingPlan(v4Target, null),
+            PingTargetMode.V6 => v6Target is null ? default : new PingPlan(null, v6Target),
+            _ => new PingPlan(v4Target, v6Target)
         };
     }
 
