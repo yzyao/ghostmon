@@ -9,9 +9,8 @@ public sealed class RedisProbeStore
 {
     private const int MaxHistoryLength = 17_280;
 
-    private readonly object _gate = new();
     private readonly IDatabase _database;
-    private DashboardSnapshot _cachedSnapshot = new()
+    private volatile DashboardSnapshot _cachedSnapshot = new()
     {
         BroadcastedAtUtc = DateTimeOffset.UtcNow
     };
@@ -33,49 +32,33 @@ public sealed class RedisProbeStore
 
         await Task.WhenAll(upsertNodeTask, pushHistoryTask);
         await _database.ListTrimAsync(historyKey, 0, MaxHistoryLength - 1);
-        return ApplyUpsertToCache(record, snapshot);
+
+        var currentSnapshot = _cachedSnapshot;
+        var history = PrependHistory(snapshot, FindHistory(currentSnapshot, nodeIdentity));
+        var updatedNode = BuildNodeBroadcastSnapshot(record, history);
+        return UpdateCache(currentSnapshot, updatedNode);
     }
 
     public DashboardSnapshot ReadDashboardSnapshot()
     {
-        lock (_gate)
-        {
-            return _cachedSnapshot;
-        }
+        return _cachedSnapshot;
     }
 
     public async Task<DashboardSnapshot> RefreshSnapshotAsync()
     {
         var snapshots = await ReadBroadcastSnapshotsAsync();
 
-        lock (_gate)
-        {
-            _cachedSnapshot = new DashboardSnapshot
-            {
-                BroadcastedAtUtc = DateTimeOffset.UtcNow,
-                Nodes = snapshots
-            };
-
-            return _cachedSnapshot;
-        }
+        return UpdateCache(_cachedSnapshot, snapshots);
     }
 
     private async Task<NodeBroadcastSnapshot[]> ReadBroadcastSnapshotsAsync()
     {
         var nodes = await ReadAllNodesAsync();
         var snapshots = new NodeBroadcastSnapshot[nodes.Length];
-        var historyTasks = new Task<HistoricalSnapshot[]>[nodes.Length];
 
         for (var index = 0; index < nodes.Length; index++)
         {
-            historyTasks[index] = ReadHistoryAsync(nodes[index]);
-        }
-
-        await Task.WhenAll(historyTasks);
-
-        for (var index = 0; index < nodes.Length; index++)
-        {
-            snapshots[index] = BuildNodeBroadcastSnapshot(nodes[index], historyTasks[index].Result);
+            snapshots[index] = BuildNodeBroadcastSnapshot(nodes[index], await ReadHistoryAsync(nodes[index]));
         }
 
         return snapshots;
@@ -123,22 +106,28 @@ public sealed class RedisProbeStore
 
     private static string BuildNodeIdentity(NodeRegistryRecord record) => $"{record.RemoteIp}:{record.MetricsPort}";
 
-    private DashboardSnapshot ApplyUpsertToCache(NodeRegistryRecord record, HistoricalSnapshot snapshot)
+    private DashboardSnapshot UpdateCache(DashboardSnapshot currentSnapshot, NodeBroadcastSnapshot updatedNode)
     {
-        lock (_gate)
+        var updatedSnapshot = new DashboardSnapshot
         {
-            var nodeIdentity = BuildNodeIdentity(record);
-            var history = PrependHistory(snapshot, FindHistory(nodeIdentity));
-            var updatedNodes = ReplaceOrAddNode(_cachedSnapshot.Nodes, BuildNodeBroadcastSnapshot(record, history));
+            BroadcastedAtUtc = DateTimeOffset.UtcNow,
+            Nodes = ReplaceOrAddNode(currentSnapshot.Nodes, updatedNode)
+        };
 
-            _cachedSnapshot = new DashboardSnapshot
-            {
-                BroadcastedAtUtc = DateTimeOffset.UtcNow,
-                Nodes = updatedNodes
-            };
+        _cachedSnapshot = updatedSnapshot;
+        return updatedSnapshot;
+    }
 
-            return _cachedSnapshot;
-        }
+    private DashboardSnapshot UpdateCache(DashboardSnapshot currentSnapshot, NodeBroadcastSnapshot[] updatedNodes)
+    {
+        var updatedSnapshot = new DashboardSnapshot
+        {
+            BroadcastedAtUtc = DateTimeOffset.UtcNow,
+            Nodes = updatedNodes
+        };
+
+        _cachedSnapshot = updatedSnapshot;
+        return updatedSnapshot;
     }
 
     private static NodeBroadcastSnapshot BuildNodeBroadcastSnapshot(NodeRegistryRecord record, HistoricalSnapshot[] history)
@@ -153,9 +142,9 @@ public sealed class RedisProbeStore
         };
     }
 
-    private HistoricalSnapshot[] FindHistory(string nodeIdentity)
+    private static HistoricalSnapshot[] FindHistory(DashboardSnapshot snapshot, string nodeIdentity)
     {
-        var existingNode = _cachedSnapshot.Nodes.FirstOrDefault(node =>
+        var existingNode = snapshot.Nodes.FirstOrDefault(node =>
             BuildNodeIdentity(node.Registration) == nodeIdentity);
 
         return existingNode?.History ?? Array.Empty<HistoricalSnapshot>();

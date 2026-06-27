@@ -6,4 +6,9 @@ internal static class AgentEndpoints
     public const string TelemetryPath = "/api/ingest";
     public const string AgentConfigPath = "/api/agent-config";
     public const string AgentVersion = "GhostMon.Agent/1.0.0";
+
+    public static Uri CreateDashboardUri(string dashboardBaseUrl, string relativePath)
+    {
+        return new Uri(new Uri(dashboardBaseUrl.TrimEnd('/') + "/", UriKind.Absolute), relativePath.TrimStart('/'));
+    }
 }

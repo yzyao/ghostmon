@@ -85,7 +85,7 @@ public sealed class AgentTelemetryHostedService : BackgroundService
             {
                 using var request = new HttpRequestMessage(
                     HttpMethod.Post,
-                    new Uri(new Uri(_settings.DashboardBaseUrl.TrimEnd('/') + "/"), AgentEndpoints.TelemetryPath.TrimStart('/')));
+                    AgentEndpoints.CreateDashboardUri(_settings.DashboardBaseUrl, AgentEndpoints.TelemetryPath));
 
                 request.Headers.TryAddWithoutValidation("X-Security-Token", _settings.SecurityToken);
                 request.Content = JsonContent.Create(payload, ProbeJsonContext.Default.NodeTelemetryReport);

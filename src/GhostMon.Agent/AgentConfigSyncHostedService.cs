@@ -40,7 +40,7 @@ public sealed class AgentConfigSyncHostedService : BackgroundService
             var client = _httpClientFactory.CreateClient(AgentEndpoints.DashboardHttpClient);
             using var request = new HttpRequestMessage(
                 HttpMethod.Get,
-                new Uri(new Uri(_settings.DashboardBaseUrl.TrimEnd('/') + "/"), AgentEndpoints.AgentConfigPath.TrimStart('/')));
+                AgentEndpoints.CreateDashboardUri(_settings.DashboardBaseUrl, AgentEndpoints.AgentConfigPath));
             request.Headers.TryAddWithoutValidation("X-Security-Token", _settings.SecurityToken);
 
             using var response = await client.SendAsync(request, cancellationToken);

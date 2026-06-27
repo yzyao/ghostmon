@@ -6,19 +6,24 @@ internal static class AgentHostMetricsReader
 {
     public static ProbeAssetsInfo DiscoverAssets(AgentRuntimeSettings settings)
     {
+        var memInfo = ReadMemInfoSnapshot(settings);
+        var rootDisk = ReadRootDiskSnapshot(settings);
+
         return new ProbeAssetsInfo
         {
             CpuModelName = ReadCpuModelName(settings),
             OsPlatform = "Linux (x64)",
-            MemoryTotalMb = ClampToInt(ReadMemInfoKb(settings, "MemTotal") / 1024),
-            SwapTotalMb = ClampToInt(ReadMemInfoKb(settings, "SwapTotal") / 1024),
-            DiskTotalGb = ClampToInt(ReadRootDiskTotalBytes(settings) / 1024 / 1024 / 1024)
+            MemoryTotalMb = ClampToInt(memInfo.MemTotalKb / 1024),
+            SwapTotalMb = ClampToInt(memInfo.SwapTotalKb / 1024),
+            DiskTotalGb = ClampToInt(rootDisk.TotalSizeBytes / 1024 / 1024 / 1024)
         };
     }
 
     public static ProbeRuntimeInfo CreateRuntimeInfo(ProbeCounters previous, ProbeCounters current, long elapsedMs, AgentRuntimeSettings settings)
     {
         var elapsedSeconds = elapsedMs / 1000d;
+        var memInfo = ReadMemInfoSnapshot(settings);
+        var rootDisk = ReadRootDiskSnapshot(settings);
 
         var cpuTotalDelta = current.CpuTotal - previous.CpuTotal;
         var cpuIdleDelta = current.CpuIdle - previous.CpuIdle;
@@ -38,9 +43,9 @@ internal static class AgentHostMetricsReader
         {
             UpTimeSeconds = ReadUptimeSeconds(settings),
             CpuUsedPercent = cpuUsedPercent,
-            MemoryUsedPercent = ReadMemoryUsedPercent(settings),
-            SwapUsedPercent = ReadSwapUsedPercent(settings),
-            DiskUsedPercent = ReadDiskUsedPercent(settings),
+            MemoryUsedPercent = ReadMemoryUsedPercent(memInfo),
+            SwapUsedPercent = ReadSwapUsedPercent(memInfo),
+            DiskUsedPercent = ReadDiskUsedPercent(rootDisk),
             DiskReadBytesPerSec = elapsedSeconds > 0 ? (long)Math.Round((diskReadDelta * 512d) / elapsedSeconds) : 0,
             DiskWriteBytesPerSec = elapsedSeconds > 0 ? (long)Math.Round((diskWriteDelta * 512d) / elapsedSeconds) : 0,
             NetRxSpeedKbps = elapsedSeconds > 0 ? (netRxDelta * 8d) / elapsedSeconds / 1000d : 0,
@@ -233,29 +238,50 @@ internal static class AgentHostMetricsReader
         return "Unknown CPU";
     }
 
-    private static long ReadMemInfoKb(AgentRuntimeSettings settings, string key)
+    private static MemInfoSnapshot ReadMemInfoSnapshot(AgentRuntimeSettings settings)
     {
+        long memTotalKb = 0;
+        long memAvailableKb = 0;
+        long memFreeKb = 0;
+        long swapTotalKb = 0;
+        long swapFreeKb = 0;
+
         try
         {
             foreach (var line in File.ReadLines(Path.Combine(settings.HostProcPath, "meminfo")))
             {
-                if (!line.StartsWith(key, StringComparison.Ordinal))
-                {
-                    continue;
-                }
-
                 var separatorIndex = line.IndexOf(':');
-                if (separatorIndex < 0)
+                if (separatorIndex <= 0)
                 {
                     continue;
                 }
 
+                var key = line[..separatorIndex];
                 var raw = line[(separatorIndex + 1)..].Trim();
                 var spaceIndex = raw.IndexOf(' ');
                 var number = spaceIndex >= 0 ? raw[..spaceIndex] : raw;
-                if (long.TryParse(number, out var value))
+                if (!long.TryParse(number, out var value))
                 {
-                    return value;
+                    continue;
+                }
+
+                switch (key)
+                {
+                    case "MemTotal":
+                        memTotalKb = value;
+                        break;
+                    case "MemAvailable":
+                        memAvailableKb = value;
+                        break;
+                    case "MemFree":
+                        memFreeKb = value;
+                        break;
+                    case "SwapTotal":
+                        swapTotalKb = value;
+                        break;
+                    case "SwapFree":
+                        swapFreeKb = value;
+                        break;
                 }
             }
         }
@@ -263,24 +289,24 @@ internal static class AgentHostMetricsReader
         {
         }
 
-        return 0;
+        return new MemInfoSnapshot(memTotalKb, memAvailableKb, memFreeKb, swapTotalKb, swapFreeKb);
     }
 
-    private static long ReadRootDiskTotalBytes(AgentRuntimeSettings settings)
+    private static RootDiskSnapshot ReadRootDiskSnapshot(AgentRuntimeSettings settings)
     {
         try
         {
             var rootDrive = new DriveInfo(settings.HostRootPath);
             if (rootDrive.IsReady)
             {
-                return rootDrive.TotalSize;
+                return new RootDiskSnapshot(rootDrive.TotalSize, rootDrive.AvailableFreeSpace);
             }
         }
         catch
         {
         }
 
-        return 0;
+        return default;
     }
 
     private static long ReadUptimeSeconds(AgentRuntimeSettings settings)
@@ -304,54 +330,39 @@ internal static class AgentHostMetricsReader
         return 0;
     }
 
-    private static double ReadMemoryUsedPercent(AgentRuntimeSettings settings)
+    private static double ReadMemoryUsedPercent(MemInfoSnapshot memInfo)
     {
-        var total = ReadMemInfoKb(settings, "MemTotal");
-        if (total <= 0)
+        if (memInfo.MemTotalKb <= 0)
         {
             return 0;
         }
 
-        var available = ReadMemInfoKb(settings, "MemAvailable");
-        if (available <= 0)
-        {
-            available = ReadMemInfoKb(settings, "MemFree");
-        }
+        var available = memInfo.MemAvailableKb > 0 ? memInfo.MemAvailableKb : memInfo.MemFreeKb;
 
-        var used = Math.Max(0, total - available);
-        return Math.Clamp((used * 100d) / total, 0d, 100d);
+        var used = Math.Max(0, memInfo.MemTotalKb - available);
+        return Math.Clamp((used * 100d) / memInfo.MemTotalKb, 0d, 100d);
     }
 
-    private static double ReadSwapUsedPercent(AgentRuntimeSettings settings)
+    private static double ReadSwapUsedPercent(MemInfoSnapshot memInfo)
     {
-        var total = ReadMemInfoKb(settings, "SwapTotal");
-        if (total <= 0)
+        if (memInfo.SwapTotalKb <= 0)
         {
             return 0;
         }
 
-        var free = ReadMemInfoKb(settings, "SwapFree");
-        var used = Math.Max(0, total - free);
-        return Math.Clamp((used * 100d) / total, 0d, 100d);
+        var used = Math.Max(0, memInfo.SwapTotalKb - memInfo.SwapFreeKb);
+        return Math.Clamp((used * 100d) / memInfo.SwapTotalKb, 0d, 100d);
     }
 
-    private static double ReadDiskUsedPercent(AgentRuntimeSettings settings)
+    private static double ReadDiskUsedPercent(RootDiskSnapshot rootDisk)
     {
-        try
-        {
-            var drive = new DriveInfo(settings.HostRootPath);
-            if (!drive.IsReady || drive.TotalSize <= 0)
-            {
-                return 0;
-            }
-
-            var used = drive.TotalSize - drive.AvailableFreeSpace;
-            return Math.Clamp((used * 100d) / drive.TotalSize, 0d, 100d);
-        }
-        catch
+        if (!rootDisk.IsReady || rootDisk.TotalSizeBytes <= 0)
         {
             return 0;
         }
+
+        var used = rootDisk.TotalSizeBytes - rootDisk.AvailableFreeSpaceBytes;
+        return Math.Clamp((used * 100d) / rootDisk.TotalSizeBytes, 0d, 100d);
     }
 
     private static int ClampToInt(long value)
@@ -367,6 +378,18 @@ internal static class AgentHostMetricsReader
     private static long ParseLong(string[] parts, int index)
     {
         return index >= 0 && index < parts.Length && long.TryParse(parts[index], out var value) ? value : 0;
+    }
+
+    private readonly record struct MemInfoSnapshot(
+        long MemTotalKb,
+        long MemAvailableKb,
+        long MemFreeKb,
+        long SwapTotalKb,
+        long SwapFreeKb);
+
+    private readonly record struct RootDiskSnapshot(long TotalSizeBytes, long AvailableFreeSpaceBytes)
+    {
+        public bool IsReady => TotalSizeBytes > 0;
     }
 }
 

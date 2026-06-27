@@ -4,7 +4,6 @@ namespace GhostMon.Agent;
 
 public sealed class AgentRuntimeState
 {
-    private readonly object _gate = new();
     private RuntimeSnapshot _snapshot;
 
     public AgentRuntimeState(AgentRuntimeSettings settings)
@@ -18,25 +17,18 @@ public sealed class AgentRuntimeState
 
     public RuntimeSnapshot Snapshot
     {
-        get
-        {
-            lock (_gate)
-            {
-                return _snapshot;
-            }
-        }
+        get => Volatile.Read(ref _snapshot);
     }
 
     public void Apply(AgentRuntimeConfig config)
     {
-        lock (_gate)
-        {
-            _snapshot = new RuntimeSnapshot(
+        Volatile.Write(
+            ref _snapshot,
+            new RuntimeSnapshot(
                 Math.Max(1, config.TelemetryIntervalSeconds),
                 Math.Max(1, config.PingTimeoutMilliseconds),
                 config.PingTargetMode,
-                config.PingTargets ?? Array.Empty<string>());
-        }
+                config.PingTargets ?? Array.Empty<string>()));
     }
 
     public sealed record class RuntimeSnapshot(
