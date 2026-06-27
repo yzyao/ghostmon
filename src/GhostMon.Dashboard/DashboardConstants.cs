@@ -9,8 +9,6 @@ internal static class DashboardConstants
     public const string AgentConfigPath = "/api/agent-config";
     public const string AgentInstallConfigPath = "/api/agent-install-config";
     public const string IngestPath = "/api/ingest";
-    public const string HubPath = "/hubs/probe";
-    public const string SnapshotUpdatedEvent = "SnapshotUpdated";
     public const string SecurityTokenHeader = "X-Security-Token";
     public const string ForwardedForHeader = "X-Forwarded-For";
 }

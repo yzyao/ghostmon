@@ -1,3 +1,5 @@
+using System.Text.Json.Serialization;
+
 namespace GhostMon.Contracts;
 
 public sealed record class ProbeAssetsInfo
@@ -49,7 +51,8 @@ public sealed record class ProbeSanityInfo
 
 public sealed record class ProbeMetrics
 {
-    public ProbeAssetsInfo Assets { get; init; } = new();
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    public ProbeAssetsInfo? Assets { get; init; }
 
     public ProbeRuntimeInfo Runtime { get; init; }
 
@@ -132,7 +135,8 @@ public sealed record class NodeRegistryRecord
 
     public DateTimeOffset LastSeenUtc { get; init; }
 
-    public ProbeAssetsInfo Assets { get; init; } = new();
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    public ProbeAssetsInfo? Assets { get; init; }
 
     public ProbeMetrics? CurrentMetrics { get; init; }
 }

@@ -141,7 +141,6 @@ GitHub Actions 会在 `main` 分支推送时只做构建校验，真正发布时
 - `GET /api/agent-config`
 - `GET /api/agent-install-config`
 - `POST /api/ingest`
-- `GET /hubs/probe`
 
 ## 说明
 
@@ -150,7 +149,7 @@ GitHub Actions 会在 `main` 分支推送时只做构建校验，真正发布时
 - JSON 序列化只通过 `ProbeJsonContext`
 - Agent 不依赖 Redis SDK
 - Dashboard 通过 Redis 保存当前节点与 24 小时历史
-- Dashboard 通过 SignalR 向前端推送快照
+- Dashboard 通过 HTTP 轮询向前端提供快照
 - Dashboard 提供可复制的 Agent 安装命令
 - `PingTargets` 为空时，Agent 不会发起 ping
 - Agent 通过配置中心同步 `TelemetryIntervalSeconds`、`PingTimeoutMilliseconds`、`PingTargetMode` 和 `PingTargets`

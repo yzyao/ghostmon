@@ -4,6 +4,7 @@ namespace GhostMon.Agent;
 
 public sealed class AgentRuntimeState
 {
+    private int _assetsReported;
     private RuntimeSnapshot _snapshot;
 
     public AgentRuntimeState(AgentRuntimeSettings settings)
@@ -29,6 +30,16 @@ public sealed class AgentRuntimeState
                 Math.Max(1, config.PingTimeoutMilliseconds),
                 config.PingTargetMode,
                 config.PingTargets ?? Array.Empty<string>()));
+    }
+
+    public bool ShouldIncludeAssets()
+    {
+        return Volatile.Read(ref _assetsReported) == 0;
+    }
+
+    public void MarkAssetsReported()
+    {
+        Interlocked.Exchange(ref _assetsReported, 1);
     }
 
     public sealed record class RuntimeSnapshot(

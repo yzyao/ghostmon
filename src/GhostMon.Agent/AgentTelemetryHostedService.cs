@@ -56,6 +56,7 @@ public sealed class AgentTelemetryHostedService : BackgroundService
 
             if (response.IsSuccessStatusCode)
             {
+                _state.MarkAssetsReported();
                 _logger.LogInformation("Agent telemetry pushed successfully.");
                 return;
             }

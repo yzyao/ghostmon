@@ -463,7 +463,7 @@
         <p class="subtitle">轻量服务器探针控制台。GhostMon 把采集和存储放在后端，这个页面只负责渲染实时状态、资产信息和 24 小时历史，并提供搜索与筛选。</p>
       </div>
       <div class="badge-row">
-        <div class="badge">SignalR: <span id="connState">连接中</span></div>
+        <div class="badge">HTTP 轮询: <span id="connState">轮询中</span></div>
         <div class="badge">节点数: <span id="nodeCount">0</span></div>
         <div class="badge">可见: <span id="visibleCount">0</span></div>
         <div class="badge">最近更新: <span id="lastUpdate">-</span></div>
@@ -541,7 +541,7 @@
               <button class="chip" id="toggleGroupsBtn" type="button">全部折叠</button>
               <button class="chip" id="refreshBtn" type="button">刷新快照</button>
             </div>
-            <div class="mono muted" id="stateHint">页面通过 SignalR 保持实时更新，刷新仅用于手动获取最新快照。</div>
+            <div class="mono muted" id="stateHint">页面通过 HTTP 轮询保持实时更新，刷新仅用于手动获取最新快照。</div>
           </div>
         </div>
       </article>
@@ -565,6 +565,7 @@
       installCommand: "",
       lastSnapshotJson: "",
       lastRenderKey: "",
+      snapshotPollTimer: null,
       search: "",
       healthFilter: "all",
       forceCollapseAll: false,
@@ -1073,12 +1074,15 @@
       try {
         const response = await fetch("/api/snapshot", { cache: "no-store" });
         if (!response.ok) {
+          el("connState").textContent = "离线";
           return;
         }
 
         const snapshot = await response.json();
+        el("connState").textContent = "正常";
         render(snapshot);
       } catch (err) {
+        el("connState").textContent = "离线";
         console.error(err);
       }
     }
@@ -1099,58 +1103,14 @@
       }
     }
 
-    function loadSignalRLibrary() {
-      if (window.signalR?.HubConnectionBuilder) {
-        return Promise.resolve(window.signalR);
-      }
-
-      return new Promise((resolve) => {
-        const script = document.createElement("script");
-        script.src = "https://cdn.jsdelivr.net/npm/@microsoft/signalr@9.0.0/dist/browser/signalr.min.js";
-        script.async = true;
-        script.referrerPolicy = "no-referrer";
-        script.onload = () => resolve(window.signalR ?? null);
-        script.onerror = () => resolve(null);
-        document.head.appendChild(script);
-      });
-    }
-
-    async function connectSignalR() {
-      const signalRSource = await loadSignalRLibrary();
-      if (!signalRSource?.HubConnectionBuilder) {
-        el("connState").textContent = "HTTP";
+    function startSnapshotPolling() {
+      if (state.snapshotPollTimer) {
         return;
       }
 
-      const connection = new signalRSource.HubConnectionBuilder()
-        .withUrl("/hubs/probe")
-        .withAutomaticReconnect([0, 2000, 5000, 10000])
-        .build();
-
-      connection.on("SnapshotUpdated", (snapshot) => {
-        el("connState").textContent = "已连接";
-        render(snapshot);
-      });
-
-      connection.onreconnecting(() => {
-        el("connState").textContent = "重连中";
-      });
-
-      connection.onreconnected(() => {
-        el("connState").textContent = "已连接";
-      });
-
-      connection.onclose(() => {
-        el("connState").textContent = "已断开";
-      });
-
-      try {
-        await connection.start();
-        el("connState").textContent = "已连接";
-      } catch (err) {
-        el("connState").textContent = "HTTP";
-        console.error(err);
-      }
+      state.snapshotPollTimer = window.setInterval(() => {
+        fetchSnapshot();
+      }, 5000);
     }
 
     el("searchInput").addEventListener("input", (event) => {
@@ -1212,7 +1172,7 @@
     fetchSnapshot();
     renderAgentInstallCommand({});
     fetchAgentInstallConfig();
-    connectSignalR();
+    startSnapshotPolling();
   </script>
 </body>
 </html>

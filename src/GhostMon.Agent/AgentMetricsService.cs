@@ -40,7 +40,7 @@ public sealed class AgentMetricsService
 
         return new ProbeMetrics
         {
-            Assets = Assets,
+            Assets = _state.ShouldIncludeAssets() ? Assets : null,
             Runtime = runtime with
             {
                 PingV4DelayMs = pingV4Task.Result,

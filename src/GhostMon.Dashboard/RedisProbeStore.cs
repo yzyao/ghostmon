@@ -23,19 +23,24 @@ public sealed class RedisProbeStore
     public async Task<DashboardSnapshot> UpsertNodeAsync(NodeRegistryRecord record, HistoricalSnapshot snapshot)
     {
         var nodeIdentity = BuildNodeIdentity(record);
-        var recordJson = JsonSerializer.Serialize(record, ProbeJsonContext.Default.NodeRegistryRecord);
+        var currentSnapshot = _cachedSnapshot;
+        var existingNode = currentSnapshot.Nodes.FirstOrDefault(node => BuildNodeIdentity(node.Registration) == nodeIdentity);
+        var mergedRecord = record with
+        {
+            Assets = record.Assets ?? existingNode?.Registration.Assets ?? existingNode?.CurrentMetrics?.Assets
+        };
+        var recordJson = JsonSerializer.Serialize(mergedRecord, ProbeJsonContext.Default.NodeRegistryRecord);
         var snapshotJson = JsonSerializer.Serialize(snapshot, ProbeJsonContext.Default.HistoricalSnapshot);
 
-        var historyKey = BuildHistoryKey(record);
+        var historyKey = BuildHistoryKey(mergedRecord);
         var upsertNodeTask = _database.HashSetAsync(DashboardConstants.RedisActiveNodesKey, nodeIdentity, recordJson);
         var pushHistoryTask = _database.ListLeftPushAsync(historyKey, snapshotJson);
 
         await Task.WhenAll(upsertNodeTask, pushHistoryTask);
         await _database.ListTrimAsync(historyKey, 0, MaxHistoryLength - 1);
 
-        var currentSnapshot = _cachedSnapshot;
         var history = PrependHistory(snapshot, FindHistory(currentSnapshot, nodeIdentity));
-        var updatedNode = BuildNodeBroadcastSnapshot(record, history);
+        var updatedNode = BuildNodeBroadcastSnapshot(mergedRecord, history);
         return UpdateCache(currentSnapshot, updatedNode);
     }
 

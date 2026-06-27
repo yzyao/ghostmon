@@ -1,7 +1,6 @@
 using System.Net;
 using System.Text.Json;
 using GhostMon.Contracts;
-using Microsoft.AspNetCore.SignalR;
 using StackExchange.Redis;
 using GhostMon.Dashboard;
 
@@ -12,12 +11,6 @@ builder.Services.AddSingleton(runtimeSettings);
 builder.Services.AddSingleton<IConnectionMultiplexer>(_ =>
     ConnectionMultiplexer.Connect(runtimeSettings.RedisConnectionString));
 builder.Services.AddSingleton<RedisProbeStore>();
-builder.Services
-    .AddSignalR()
-    .AddJsonProtocol(options =>
-    {
-        options.PayloadSerializerOptions.TypeInfoResolver = ProbeJsonContext.Default;
-    });
 
 var app = builder.Build();
 
@@ -31,7 +24,6 @@ app.MapGet(DashboardConstants.SnapshotPath, MapSnapshot);
 app.MapGet(DashboardConstants.AgentConfigPath, GetAgentConfig);
 app.MapGet(DashboardConstants.AgentInstallConfigPath, GetAgentInstallConfig);
 app.MapPost(DashboardConstants.IngestPath, IngestNode);
-app.MapHub<ProbeHub>(DashboardConstants.HubPath);
 
 app.Logger.LogInformation("GhostMon Dashboard started.");
 
@@ -73,7 +65,6 @@ static IResult GetAgentInstallConfig(DashboardRuntimeSettings runtimeSettings)
 static async Task<IResult> IngestNode(
     HttpContext context,
     RedisProbeStore store,
-    IHubContext<ProbeHub> hubContext,
     DashboardRuntimeSettings runtimeSettings,
     CancellationToken cancellationToken)
 {
@@ -123,8 +114,7 @@ static async Task<IResult> IngestNode(
         Metrics = request.Metrics
     };
 
-    var dashboardSnapshot = await store.UpsertNodeAsync(record, snapshot);
-    await hubContext.Clients.All.SendAsync(DashboardConstants.SnapshotUpdatedEvent, dashboardSnapshot, cancellationToken);
+    await store.UpsertNodeAsync(record, snapshot);
 
     return Results.NoContent();
 }
