@@ -50,6 +50,11 @@ services:
       HostSysPath: /host-sys
       HostRootPath: /host-root
       HostTmpPath: /host-tmp
+    volumes:
+      - /proc:/host-proc:ro
+      - /sys:/host-sys:ro
+      - /:/host-root:ro
+      - /tmp:/host-tmp
     ports:
       - "8081:8081"
     restart: unless-stopped

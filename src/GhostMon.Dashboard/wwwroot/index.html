@@ -527,7 +527,7 @@
           <div class="control-row">
             <label class="search-box">
               <span class="mono muted">搜索</span>
-              <input id="searchInput" type="search" placeholder="按节点名 / IP / 分组 / CPU 型号 搜索" />
+              <input id="searchInput" type="search" placeholder="按节点名 / 分组 / CPU 型号 搜索" />
             </label>
             <div class="filter-group" id="healthFilters">
               <button class="chip active" data-health="all" type="button">全部</button>
@@ -745,7 +745,6 @@
       const haystack = [
         reg.nodeName,
         reg.groupName,
-        reg.remoteIp,
         assets.cpuModelName,
         assets.osPlatform
       ]
@@ -849,7 +848,6 @@
       const netHistory = sampleHistoryValues(history, (entry) => (entry?.metrics?.runtime?.netRxSpeedKbps ?? 0) + (entry?.metrics?.runtime?.netTxSpeedKbps ?? 0));
 
       const topItems = [
-        `IP ${reg.remoteIp || "暂无"}`,
         `分组 ${reg.groupName || "默认"}`,
         `端口 ${reg.metricsPort || 0}`,
         `更新 ${formatTime(reg.lastSeenUtc)}`

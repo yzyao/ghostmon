@@ -25,6 +25,7 @@ docker compose up -d
 
 这套配置直接拉取 Docker Hub 发布镜像，适合生产部署或远程主机快速启动。
 先把 [`docker-compose.yml`](C:/Users/yzyao/Documents/ghostmon/docker-compose.yml) 里的 `<your-namespace>` 替换成你的 Docker Hub 命名空间。
+这套配置里的 Agent 会挂载宿主机的 `/proc`、`/sys`、`/` 和 `/tmp`，否则资源指标会一直是 0。
 
 ### Agent 直跑
 
@@ -107,14 +108,16 @@ Dashboard 提供可复制 Agent 命令的安装配置接口：
 
 ## 发布镜像
 
-GitHub Actions 会在 `main` 分支推送时只做构建校验，在 `v*` 标签推送时发布到两个独立的 Docker Hub 仓库：
+GitHub Actions 会在 `main` 分支推送时只做构建校验，真正发布时需要在 Actions 里手动触发 `Docker Publish` workflow，并输入 `release_version`，例如 `v1.2.3`。
+
+发布到两个独立的 Docker Hub 仓库：
 
 - `ghostmon-agent`
 - `ghostmon-dashboard`
 
 每个仓库都会带上：
 
-- `vX.Y.Z`
+- `release_version`
 - `latest`
 - `sha` 构建标记
 
