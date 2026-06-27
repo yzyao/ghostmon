@@ -30,7 +30,13 @@ public sealed class AgentTelemetryHostedService : BackgroundService
         while (!stoppingToken.IsCancellationRequested)
         {
             await PushTelemetryAsync(stoppingToken);
-            await AgentBackgroundWorker.DelayAsync(TimeSpan.FromSeconds(_state.Snapshot.TelemetryIntervalSeconds), stoppingToken);
+            try
+            {
+                await Task.Delay(TimeSpan.FromSeconds(_state.Snapshot.TelemetryIntervalSeconds), stoppingToken);
+            }
+            catch (OperationCanceledException) when (stoppingToken.IsCancellationRequested)
+            {
+            }
         }
     }
 
@@ -85,7 +91,7 @@ public sealed class AgentTelemetryHostedService : BackgroundService
             {
                 using var request = new HttpRequestMessage(
                     HttpMethod.Post,
-                    AgentEndpoints.CreateDashboardUri(_settings.DashboardBaseUrl, AgentEndpoints.TelemetryPath));
+                    new Uri(new Uri(_settings.DashboardBaseUrl.TrimEnd('/') + "/", UriKind.Absolute), AgentEndpoints.TelemetryPath.TrimStart('/')));
 
                 request.Headers.TryAddWithoutValidation("X-Security-Token", _settings.SecurityToken);
                 request.Content = JsonContent.Create(payload, ProbeJsonContext.Default.NodeTelemetryReport);

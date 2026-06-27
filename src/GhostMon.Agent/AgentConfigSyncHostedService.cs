@@ -29,7 +29,13 @@ public sealed class AgentConfigSyncHostedService : BackgroundService
         while (!stoppingToken.IsCancellationRequested)
         {
             await SyncAsync(stoppingToken);
-            await AgentBackgroundWorker.DelayAsync(SyncInterval, stoppingToken);
+            try
+            {
+                await Task.Delay(SyncInterval, stoppingToken);
+            }
+            catch (OperationCanceledException) when (stoppingToken.IsCancellationRequested)
+            {
+            }
         }
     }
 
@@ -40,7 +46,7 @@ public sealed class AgentConfigSyncHostedService : BackgroundService
             var client = _httpClientFactory.CreateClient(AgentEndpoints.DashboardHttpClient);
             using var request = new HttpRequestMessage(
                 HttpMethod.Get,
-                AgentEndpoints.CreateDashboardUri(_settings.DashboardBaseUrl, AgentEndpoints.AgentConfigPath));
+                new Uri(new Uri(_settings.DashboardBaseUrl.TrimEnd('/') + "/", UriKind.Absolute), AgentEndpoints.AgentConfigPath.TrimStart('/')));
             request.Headers.TryAddWithoutValidation("X-Security-Token", _settings.SecurityToken);
 
             using var response = await client.SendAsync(request, cancellationToken);

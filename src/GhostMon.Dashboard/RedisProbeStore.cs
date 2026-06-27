@@ -23,8 +23,8 @@ public sealed class RedisProbeStore
     public async Task<DashboardSnapshot> UpsertNodeAsync(NodeRegistryRecord record, HistoricalSnapshot snapshot)
     {
         var nodeIdentity = BuildNodeIdentity(record);
-        var recordJson = SerializeJson(record, ProbeJsonContext.Default.NodeRegistryRecord);
-        var snapshotJson = SerializeJson(snapshot, ProbeJsonContext.Default.HistoricalSnapshot);
+        var recordJson = JsonSerializer.Serialize(record, ProbeJsonContext.Default.NodeRegistryRecord);
+        var snapshotJson = JsonSerializer.Serialize(snapshot, ProbeJsonContext.Default.HistoricalSnapshot);
 
         var historyKey = BuildHistoryKey(record);
         var upsertNodeTask = _database.HashSetAsync(DashboardConstants.RedisActiveNodesKey, nodeIdentity, recordJson);
@@ -48,7 +48,7 @@ public sealed class RedisProbeStore
     {
         var snapshots = await ReadBroadcastSnapshotsAsync();
 
-        return UpdateCache(_cachedSnapshot, snapshots);
+        return UpdateCache(snapshots);
     }
 
     private async Task<NodeBroadcastSnapshot[]> ReadBroadcastSnapshotsAsync()
@@ -118,7 +118,7 @@ public sealed class RedisProbeStore
         return updatedSnapshot;
     }
 
-    private DashboardSnapshot UpdateCache(DashboardSnapshot currentSnapshot, NodeBroadcastSnapshot[] updatedNodes)
+    private DashboardSnapshot UpdateCache(NodeBroadcastSnapshot[] updatedNodes)
     {
         var updatedSnapshot = new DashboardSnapshot
         {
@@ -206,11 +206,6 @@ public sealed class RedisProbeStore
         });
 
         return updatedNodes.ToArray();
-    }
-
-    private static string SerializeJson<T>(T value, JsonTypeInfo<T> typeInfo)
-    {
-        return JsonSerializer.Serialize(value, typeInfo);
     }
 
     private static T? TryDeserializeJson<T>(RedisValue value, JsonTypeInfo<T> typeInfo)

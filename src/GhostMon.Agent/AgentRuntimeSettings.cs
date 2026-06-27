@@ -20,59 +20,53 @@ public sealed record class AgentRuntimeSettings(
 {
     public static AgentRuntimeSettings FromConfiguration(IConfiguration configuration)
     {
+        var dashboardBaseUrl = configuration["DashboardBaseUrl"] ?? configuration["DASHBOARD_BASE_URL"];
+        if (string.IsNullOrWhiteSpace(dashboardBaseUrl))
+        {
+            throw new InvalidOperationException("Required setting DashboardBaseUrl is missing.");
+        }
+
+        var securityToken = configuration["SecurityToken"] ?? configuration["SECURITY_TOKEN"];
+        if (string.IsNullOrWhiteSpace(securityToken))
+        {
+            throw new InvalidOperationException("Required setting SecurityToken is missing.");
+        }
+
+        var nodeName = configuration["NodeName"] ?? configuration["NODE_NAME"];
+        if (string.IsNullOrWhiteSpace(nodeName))
+        {
+            throw new InvalidOperationException("Required setting NodeName is missing.");
+        }
+
+        var groupName = configuration["GroupName"] ?? configuration["GROUP_NAME"] ?? "default";
+        var metricsPort = configuration.GetValue<int?>("AgentPort")
+            ?? configuration.GetValue<int?>("AGENT_PORT")
+            ?? 8081;
+        var telemetryIntervalSeconds = configuration.GetValue<int?>("TelemetryIntervalSeconds")
+            ?? configuration.GetValue<int?>("TELEMETRY_INTERVAL_SECONDS")
+            ?? 5;
+        var pingTimeoutMilliseconds = configuration.GetValue<int?>("PingTimeoutMilliseconds")
+            ?? configuration.GetValue<int?>("PING_TIMEOUT_MILLISECONDS")
+            ?? 500;
+        var pingTargetModeValue = configuration["PingTargetMode"] ?? configuration["PING_TARGET_MODE"];
+        var pingTargetMode = Enum.TryParse<PingTargetMode>(pingTargetModeValue, ignoreCase: true, out var parsedPingTargetMode)
+            ? parsedPingTargetMode
+            : PingTargetMode.Both;
+
         return new AgentRuntimeSettings(
-            DashboardBaseUrl: GetRequiredString(configuration, "DashboardBaseUrl", "DASHBOARD_BASE_URL"),
-            SecurityToken: GetRequiredString(configuration, "SecurityToken", "SECURITY_TOKEN"),
-            NodeName: GetRequiredString(configuration, "NodeName", "NODE_NAME"),
-            GroupName: GetStringOrDefault(configuration, "default", "GroupName", "GROUP_NAME"),
-            MetricsPort: GetInt(configuration, 8081, "AgentPort", "AGENT_PORT"),
-            TelemetryIntervalSeconds: GetInt(configuration, 5, "TelemetryIntervalSeconds", "TELEMETRY_INTERVAL_SECONDS"),
-            PingTimeoutMilliseconds: GetInt(configuration, 500, "PingTimeoutMilliseconds", "PING_TIMEOUT_MILLISECONDS"),
-            PingTargetMode: GetPingTargetMode(configuration, PingTargetMode.Both, "PingTargetMode", "PING_TARGET_MODE"),
+            DashboardBaseUrl: dashboardBaseUrl,
+            SecurityToken: securityToken,
+            NodeName: nodeName,
+            GroupName: groupName,
+            MetricsPort: metricsPort,
+            TelemetryIntervalSeconds: telemetryIntervalSeconds,
+            PingTimeoutMilliseconds: pingTimeoutMilliseconds,
+            PingTargetMode: pingTargetMode,
             PingTargets: GetStringArray(configuration, "PingTargets", "PING_TARGETS"),
-            HostProcPath: GetStringOrDefault(configuration, "/proc", "HostProcPath", "HOST_PROC_PATH"),
-            HostSysPath: GetStringOrDefault(configuration, "/sys", "HostSysPath", "HOST_SYS_PATH"),
-            HostRootPath: GetStringOrDefault(configuration, "/", "HostRootPath", "HOST_ROOT_PATH"),
-            HostTmpPath: GetStringOrDefault(configuration, "/tmp", "HostTmpPath", "HOST_TMP_PATH"));
-    }
-
-    private static string GetRequiredString(IConfiguration configuration, params string[] keys)
-    {
-        var value = GetStringOrDefault(configuration, string.Empty, keys);
-        if (!string.IsNullOrWhiteSpace(value))
-        {
-            return value;
-        }
-
-        throw new InvalidOperationException($"Required setting {keys[0]} is missing.");
-    }
-
-    private static string GetStringOrDefault(IConfiguration configuration, string fallback, params string[] keys)
-    {
-        foreach (var key in keys)
-        {
-            var value = configuration[key];
-            if (!string.IsNullOrWhiteSpace(value))
-            {
-                return value.Trim();
-            }
-        }
-
-        return fallback;
-    }
-
-    private static int GetInt(IConfiguration configuration, int fallback, params string[] keys)
-    {
-        foreach (var key in keys)
-        {
-            var value = configuration[key];
-            if (int.TryParse(value, out var parsed))
-            {
-                return parsed;
-            }
-        }
-
-        return fallback;
+            HostProcPath: configuration["HostProcPath"] ?? configuration["HOST_PROC_PATH"] ?? "/proc",
+            HostSysPath: configuration["HostSysPath"] ?? configuration["HOST_SYS_PATH"] ?? "/sys",
+            HostRootPath: configuration["HostRootPath"] ?? configuration["HOST_ROOT_PATH"] ?? "/",
+            HostTmpPath: configuration["HostTmpPath"] ?? configuration["HOST_TMP_PATH"] ?? "/tmp");
     }
 
     private static string[] GetStringArray(IConfiguration configuration, params string[] keys)
@@ -100,17 +94,4 @@ public sealed record class AgentRuntimeSettings(
         return Array.Empty<string>();
     }
 
-    private static PingTargetMode GetPingTargetMode(IConfiguration configuration, PingTargetMode fallback, params string[] keys)
-    {
-        foreach (var key in keys)
-        {
-            var value = configuration[key];
-            if (Enum.TryParse<PingTargetMode>(value, ignoreCase: true, out var parsed))
-            {
-                return parsed;
-            }
-        }
-
-        return fallback;
-    }
 }

@@ -13,52 +13,38 @@ public sealed record class DashboardRuntimeSettings(
 {
     public static DashboardRuntimeSettings FromConfiguration(IConfiguration configuration)
     {
+        var redisConnectionString = configuration["RedisConnectionString"]
+            ?? configuration["REDIS:CONNECTIONSTRING"]
+            ?? configuration["REDIS_CONNECTION_STRING"];
+        if (string.IsNullOrWhiteSpace(redisConnectionString))
+        {
+            throw new InvalidOperationException("Required setting RedisConnectionString is missing.");
+        }
+
+        var securityToken = configuration["SecurityToken"] ?? configuration["SECURITY_TOKEN"];
+        if (string.IsNullOrWhiteSpace(securityToken))
+        {
+            throw new InvalidOperationException("Required setting SecurityToken is missing.");
+        }
+
+        var telemetryIntervalSeconds = configuration.GetValue<int?>("TelemetryIntervalSeconds")
+            ?? configuration.GetValue<int?>("TELEMETRY_INTERVAL_SECONDS")
+            ?? 5;
+        var pingTimeoutMilliseconds = configuration.GetValue<int?>("PingTimeoutMilliseconds")
+            ?? configuration.GetValue<int?>("PING_TIMEOUT_MILLISECONDS")
+            ?? 500;
+        var pingTargetModeValue = configuration["PingTargetMode"] ?? configuration["PING_TARGET_MODE"];
+        var pingTargetMode = Enum.TryParse<PingTargetMode>(pingTargetModeValue, ignoreCase: true, out var parsedPingTargetMode)
+            ? parsedPingTargetMode
+            : PingTargetMode.Both;
+
         return new DashboardRuntimeSettings(
-            RedisConnectionString: GetRequiredString(configuration, "RedisConnectionString", "REDIS:CONNECTIONSTRING", "REDIS_CONNECTION_STRING"),
-            SecurityToken: GetRequiredString(configuration, "SecurityToken", "SECURITY_TOKEN"),
-            TelemetryIntervalSeconds: GetInt(configuration, 5, "TelemetryIntervalSeconds", "TELEMETRY_INTERVAL_SECONDS"),
-            PingTimeoutMilliseconds: GetInt(configuration, 500, "PingTimeoutMilliseconds", "PING_TIMEOUT_MILLISECONDS"),
-            PingTargetMode: GetPingTargetMode(configuration, PingTargetMode.Both, "PingTargetMode", "PING_TARGET_MODE"),
+            RedisConnectionString: redisConnectionString,
+            SecurityToken: securityToken,
+            TelemetryIntervalSeconds: telemetryIntervalSeconds,
+            PingTimeoutMilliseconds: pingTimeoutMilliseconds,
+            PingTargetMode: pingTargetMode,
             PingTargets: GetStringArray(configuration, "PingTargets", "PING_TARGETS"));
-    }
-
-    private static string GetRequiredString(IConfiguration configuration, params string[] keys)
-    {
-        var value = GetStringOrDefault(configuration, string.Empty, keys);
-        if (!string.IsNullOrWhiteSpace(value))
-        {
-            return value;
-        }
-
-        throw new InvalidOperationException($"Required setting {keys[0]} is missing.");
-    }
-
-    private static string GetStringOrDefault(IConfiguration configuration, string fallback, params string[] keys)
-    {
-        foreach (var key in keys)
-        {
-            var value = configuration[key];
-            if (!string.IsNullOrWhiteSpace(value))
-            {
-                return value.Trim();
-            }
-        }
-
-        return fallback;
-    }
-
-    private static int GetInt(IConfiguration configuration, int fallback, params string[] keys)
-    {
-        foreach (var key in keys)
-        {
-            var value = configuration[key];
-            if (int.TryParse(value, out var parsed))
-            {
-                return parsed;
-            }
-        }
-
-        return fallback;
     }
 
     private static string[] GetStringArray(IConfiguration configuration, params string[] keys)
@@ -86,17 +72,4 @@ public sealed record class DashboardRuntimeSettings(
         return Array.Empty<string>();
     }
 
-    private static PingTargetMode GetPingTargetMode(IConfiguration configuration, PingTargetMode fallback, params string[] keys)
-    {
-        foreach (var key in keys)
-        {
-            var value = configuration[key];
-            if (Enum.TryParse<PingTargetMode>(value, ignoreCase: true, out var parsed))
-            {
-                return parsed;
-            }
-        }
-
-        return fallback;
-    }
 }
