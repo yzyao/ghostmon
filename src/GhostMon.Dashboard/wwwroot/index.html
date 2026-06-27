@@ -7,21 +7,22 @@
   <title>GhostMon 控制台</title>
   <style>
     :root {
-      --bg: #07111f;
-      --bg2: #0d1b2f;
-      --panel: rgba(11, 20, 36, 0.82);
-      --panel-border: rgba(129, 170, 255, 0.16);
-      --text: #e9f1ff;
-      --muted: #94a6c5;
-      --accent: #63d2ff;
-      --accent-2: #8ef0b5;
-      --warn: #ffcb6b;
-      --bad: #ff7b7b;
-      --good: #80ed99;
-      --shadow: 0 24px 80px rgba(0, 0, 0, 0.38);
-      --radius: 20px;
+      --bg: #060b14;
+      --bg2: #0a1221;
+      --panel: rgba(14, 20, 34, 0.96);
+      --panel-soft: rgba(255, 255, 255, 0.03);
+      --panel-border: rgba(145, 170, 215, 0.12);
+      --text: #edf2ff;
+      --muted: #92a1bd;
+      --accent: #60d5ff;
+      --accent-2: #89e7a8;
+      --warn: #ffd36a;
+      --bad: #ff7b86;
+      --good: #7fe89a;
+      --shadow: 0 18px 40px rgba(0, 0, 0, 0.28);
+      --radius: 14px;
       --mono: "SFMono-Regular", Consolas, "Liberation Mono", Menlo, monospace;
-      --sans: Inter, "Segoe UI", system-ui, -apple-system, BlinkMacSystemFont, sans-serif;
+      --sans: "Segoe UI Variable", "Segoe UI", "PingFang SC", "Microsoft YaHei", sans-serif;
     }
 
     * { box-sizing: border-box; }
@@ -31,37 +32,60 @@
       font-family: var(--sans);
       color: var(--text);
       background:
-        radial-gradient(circle at top left, rgba(99, 210, 255, 0.18), transparent 24%),
-        radial-gradient(circle at top right, rgba(142, 240, 181, 0.12), transparent 28%),
+        radial-gradient(circle at 20% 0%, rgba(96, 213, 255, 0.10), transparent 25%),
+        radial-gradient(circle at 90% 10%, rgba(137, 231, 168, 0.07), transparent 22%),
         linear-gradient(160deg, var(--bg), var(--bg2));
+      position: relative;
+      overflow-x: hidden;
+    }
+
+    body::before {
+      content: "";
+      position: fixed;
+      inset: 0;
+      pointer-events: none;
+      background-image:
+        linear-gradient(rgba(255, 255, 255, 0.03) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(255, 255, 255, 0.03) 1px, transparent 1px);
+      background-size: 44px 44px;
+      mask-image: linear-gradient(to bottom, rgba(0, 0, 0, 0.8), transparent 100%);
+      opacity: 0.14;
     }
 
     .shell {
-      max-width: 1520px;
+      max-width: 1480px;
       margin: 0 auto;
-      padding: 28px;
+      padding: 20px;
+      position: relative;
+      z-index: 1;
     }
 
     .hero {
       display: grid;
       grid-template-columns: minmax(0, 1fr) auto;
-      gap: 20px;
-      align-items: end;
-      margin-bottom: 22px;
+      gap: 16px;
+      align-items: center;
+      margin-bottom: 18px;
+      padding: 18px 20px;
+      border: 1px solid var(--panel-border);
+      border-radius: calc(var(--radius) + 2px);
+      background: rgba(12, 17, 29, 0.72);
+      box-shadow: var(--shadow);
     }
 
     .title {
       margin: 0;
-      font-size: clamp(2rem, 3.2vw, 4.4rem);
-      line-height: 0.94;
-      letter-spacing: -0.04em;
+      font-size: clamp(1.8rem, 2.6vw, 3.2rem);
+      line-height: 1;
+      letter-spacing: -0.05em;
     }
 
     .subtitle {
-      margin: 14px 0 0;
+      margin: 10px 0 0;
       color: var(--muted);
-      max-width: 72ch;
-      line-height: 1.6;
+      max-width: 80ch;
+      line-height: 1.5;
+      font-size: 14px;
     }
 
     .badge-row {
@@ -72,19 +96,19 @@
     }
 
     .badge {
-      padding: 10px 14px;
+      padding: 9px 12px;
       border: 1px solid var(--panel-border);
       border-radius: 999px;
-      background: rgba(255, 255, 255, 0.04);
+      background: rgba(255, 255, 255, 0.03);
       color: var(--text);
-      font-size: 13px;
-      backdrop-filter: blur(12px);
+      font-size: 12px;
+      letter-spacing: 0.02em;
     }
 
     .grid {
       display: grid;
       grid-template-columns: repeat(12, minmax(0, 1fr));
-      gap: 18px;
+      gap: 14px;
     }
 
     .card {
@@ -92,13 +116,12 @@
       border: 1px solid var(--panel-border);
       border-radius: var(--radius);
       box-shadow: var(--shadow);
-      backdrop-filter: blur(18px);
       overflow: hidden;
     }
 
     .card-head {
-      padding: 18px;
-      border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+      padding: 14px 16px;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.05);
       display: flex;
       align-items: center;
       justify-content: space-between;
@@ -107,14 +130,14 @@
 
     .card-title {
       margin: 0;
-      font-size: 15px;
-      letter-spacing: 0.08em;
+      font-size: 12px;
+      letter-spacing: 0.12em;
       text-transform: uppercase;
       color: var(--muted);
     }
 
     .card-body {
-      padding: 18px;
+      padding: 14px 16px 16px;
     }
 
     .command-toolbar {
@@ -128,20 +151,20 @@
 
     .command-note {
       color: var(--muted);
-      font-size: 13px;
+      font-size: 12px;
       line-height: 1.5;
     }
 
     .command-shell {
       margin: 0;
-      padding: 16px;
-      border-radius: 16px;
-      border: 1px solid rgba(255, 255, 255, 0.08);
-      background: rgba(0, 0, 0, 0.24);
+      padding: 14px;
+      border-radius: 12px;
+      border: 1px solid rgba(255, 255, 255, 0.06);
+      background: rgba(0, 0, 0, 0.22);
       color: var(--text);
       font-family: var(--mono);
-      font-size: 12px;
-      line-height: 1.7;
+      font-size: 11px;
+      line-height: 1.6;
       white-space: pre-wrap;
       word-break: break-word;
       overflow-x: auto;
@@ -152,10 +175,10 @@
       background: rgba(99, 210, 255, 0.12);
       color: var(--text);
       border-radius: 999px;
-      padding: 10px 14px;
+      padding: 9px 14px;
       cursor: pointer;
       font: inherit;
-      font-size: 13px;
+      font-size: 12px;
       transition: transform 0.15s ease, background 0.15s ease, border-color 0.15s ease;
     }
 
@@ -171,20 +194,21 @@
 
     .kpi {
       display: grid;
-      gap: 8px;
+      gap: 6px;
+      position: relative;
     }
 
     .kpi .value {
-      font-size: clamp(1.4rem, 2.2vw, 2.5rem);
+      font-size: clamp(1.25rem, 1.9vw, 2rem);
       font-weight: 700;
-      letter-spacing: -0.03em;
+      letter-spacing: -0.04em;
     }
 
     .kpi .label {
       color: var(--muted);
-      font-size: 13px;
+      font-size: 11px;
       text-transform: uppercase;
-      letter-spacing: 0.1em;
+      letter-spacing: 0.12em;
     }
 
     .controls {
@@ -205,10 +229,10 @@
       display: flex;
       gap: 10px;
       align-items: center;
-      padding: 12px 14px;
-      border-radius: 14px;
+      padding: 11px 13px;
+      border-radius: 12px;
       border: 1px solid rgba(255, 255, 255, 0.08);
-      background: rgba(0, 0, 0, 0.16);
+      background: rgba(0, 0, 0, 0.20);
     }
 
     .search-box input {
@@ -228,17 +252,17 @@
 
     .chip {
       border: 1px solid rgba(255, 255, 255, 0.08);
-      background: rgba(255, 255, 255, 0.04);
+      background: rgba(255, 255, 255, 0.035);
       color: var(--text);
       border-radius: 999px;
-      padding: 8px 12px;
+      padding: 8px 11px;
       cursor: pointer;
-      font-size: 13px;
+      font-size: 12px;
     }
 
     .chip.active {
       border-color: rgba(99, 210, 255, 0.5);
-      background: rgba(99, 210, 255, 0.14);
+      background: rgba(99, 210, 255, 0.12);
     }
 
     .mono {
@@ -255,13 +279,13 @@
 
     .nodes {
       display: grid;
-      gap: 16px;
+      gap: 12px;
     }
 
     .group {
-      border: 1px solid rgba(255, 255, 255, 0.07);
-      background: rgba(255, 255, 255, 0.025);
-      border-radius: 18px;
+      border: 1px solid rgba(255, 255, 255, 0.06);
+      background: rgba(255, 255, 255, 0.016);
+      border-radius: 12px;
       overflow: hidden;
     }
 
@@ -271,16 +295,17 @@
       display: flex;
       align-items: center;
       justify-content: space-between;
-      gap: 14px;
-      padding: 16px 18px;
+      gap: 12px;
+      padding: 10px 12px;
       user-select: none;
+      background: rgba(255, 255, 255, 0.02);
     }
 
     .group > summary::-webkit-details-marker { display: none; }
 
     .group-title {
       margin: 0;
-      font-size: 16px;
+      font-size: 13px;
       font-weight: 700;
       letter-spacing: -0.02em;
     }
@@ -288,78 +313,168 @@
     .group-meta {
       display: flex;
       flex-wrap: wrap;
-      gap: 8px;
+      gap: 6px;
       justify-content: flex-end;
     }
 
     .pill {
       border-radius: 999px;
-      padding: 6px 10px;
+      padding: 4px 8px;
       border: 1px solid rgba(255, 255, 255, 0.08);
-      background: rgba(0, 0, 0, 0.16);
-      font-size: 12px;
+      background: rgba(0, 0, 0, 0.18);
+      font-size: 10px;
       white-space: nowrap;
     }
 
     .group-body {
       display: grid;
-      gap: 14px;
-      padding: 0 18px 18px;
+      gap: 8px;
+      padding: 0 10px 10px;
     }
 
     .node {
-      display: grid;
-      gap: 14px;
-      padding: 16px;
-      border-radius: 18px;
+      border-radius: 12px;
       border: 1px solid rgba(255, 255, 255, 0.07);
-      background: rgba(255, 255, 255, 0.03);
+      background: rgba(255, 255, 255, 0.026);
+      overflow: hidden;
     }
 
-    .node-top {
+    .node-summary {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) 290px;
+      gap: 10px;
+      align-items: center;
+      padding: 10px 12px;
+      cursor: pointer;
+      list-style: none;
+    }
+
+    .node-summary::-webkit-details-marker {
+      display: none;
+    }
+
+    .node.healthy .node-summary {
+      background: linear-gradient(90deg, rgba(127, 232, 154, 0.10), transparent 26%);
+    }
+
+    .node.warning .node-summary {
+      background: linear-gradient(90deg, rgba(255, 211, 106, 0.10), transparent 26%);
+    }
+
+    .node.degraded .node-summary {
+      background: linear-gradient(90deg, rgba(255, 123, 134, 0.10), transparent 26%);
+    }
+
+    .node-main {
+      min-width: 0;
+      display: grid;
+      gap: 3px;
+    }
+
+    .node-topline {
       display: flex;
-      justify-content: space-between;
-      gap: 16px;
-      align-items: flex-start;
+      align-items: center;
+      gap: 8px;
+      min-width: 0;
     }
 
     .node-name {
       margin: 0;
-      font-size: 18px;
+      font-size: 15px;
       line-height: 1.2;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
     }
 
     .node-meta {
       display: flex;
       flex-wrap: wrap;
-      gap: 10px;
-      margin-top: 6px;
+      gap: 5px;
       color: var(--muted);
-      font-size: 13px;
+      font-size: 10px;
+    }
+
+    .node-stats {
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: 5px;
+    }
+
+    .mini-stat {
+      padding: 6px 8px;
+      border-radius: 9px;
+      background: rgba(0, 0, 0, 0.18);
+      border: 1px solid rgba(255, 255, 255, 0.05);
+      display: grid;
+      gap: 4px;
+    }
+
+    .mini-stat .label {
+      color: var(--muted);
+      font-size: 8px;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+    }
+
+    .mini-stat .value {
+      font-family: var(--mono);
+      font-size: 11px;
+    }
+
+    .node-side {
+      display: flex;
+      align-items: center;
+      justify-content: flex-end;
+      gap: 8px;
+      min-width: 0;
+    }
+
+    .node-indicator {
+      display: grid;
+      justify-items: end;
+      gap: 4px;
+      min-width: 72px;
+    }
+
+    .node-health-pill {
+      border-radius: 999px;
+      padding: 4px 8px;
+      font-size: 10px;
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      background: rgba(0, 0, 0, 0.18);
+    }
+
+    .node-expand {
+      display: grid;
+      gap: 10px;
+      padding: 0 12px 12px;
+      border-top: 1px solid rgba(255, 255, 255, 0.05);
     }
 
     .stat-list {
       display: grid;
-      gap: 12px;
+      gap: 8px;
+      margin-top: 12px;
     }
 
     .stat-row {
       display: grid;
-      grid-template-columns: 180px 1fr auto;
-      gap: 12px;
+      grid-template-columns: 120px 1fr auto;
+      gap: 10px;
       align-items: center;
     }
 
     .stat-row .name {
       color: var(--muted);
-      font-size: 13px;
+      font-size: 11px;
       text-transform: uppercase;
-      letter-spacing: 0.08em;
+      letter-spacing: 0.09em;
     }
 
     .bar {
       position: relative;
-      height: 10px;
+      height: 8px;
       border-radius: 999px;
       overflow: hidden;
       background: rgba(255, 255, 255, 0.08);
@@ -377,14 +492,14 @@
       gap: 8px;
       grid-template-columns: 1fr auto;
       align-items: end;
-      padding: 12px 14px;
-      border-radius: 14px;
+      padding: 10px 12px;
+      border-radius: 12px;
       border: 1px solid rgba(255, 255, 255, 0.07);
-      background: rgba(0, 0, 0, 0.14);
+      background: rgba(0, 0, 0, 0.16);
     }
 
     .sparkline-title {
-      font-size: 12px;
+      font-size: 11px;
       text-transform: uppercase;
       letter-spacing: 0.08em;
       color: var(--muted);
@@ -393,7 +508,7 @@
 
     .sparkline {
       width: 100%;
-      height: 72px;
+      height: 64px;
       display: block;
       color: var(--accent);
     }
@@ -413,20 +528,20 @@
 
     .history-grid {
       display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
-      gap: 10px;
+      grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+      gap: 8px;
     }
 
     .history-item {
-      padding: 10px 12px;
-      border-radius: 14px;
-      background: rgba(255, 255, 255, 0.04);
+      padding: 9px 11px;
+      border-radius: 12px;
+      background: rgba(255, 255, 255, 0.035);
       border: 1px solid rgba(255, 255, 255, 0.06);
     }
 
     .history-item .h-label {
       color: var(--muted);
-      font-size: 11px;
+      font-size: 10px;
       text-transform: uppercase;
       letter-spacing: 0.08em;
     }
@@ -434,7 +549,7 @@
     .history-item .h-value {
       margin-top: 6px;
       font-family: var(--mono);
-      font-size: 13px;
+      font-size: 12px;
     }
 
     .span-12 { grid-column: span 12; }
@@ -449,8 +564,9 @@
     }
 
     @media (max-width: 720px) {
-      .shell { padding: 16px; }
-      .title { font-size: 2.2rem; }
+      .shell { padding: 14px; }
+      .hero { padding: 14px; }
+      .title { font-size: 2rem; }
       .control-row { align-items: stretch; }
     }
   </style>
@@ -460,7 +576,7 @@
     <section class="hero">
       <div>
         <h1 class="title">GhostMon 控制台</h1>
-        <p class="subtitle">轻量服务器探针控制台。GhostMon 把采集和存储放在后端，这个页面只负责渲染实时状态、资产信息和 24 小时历史，并提供搜索与筛选。</p>
+        <p class="subtitle">更克制的服务器监控面板。高密度节点列表、清晰的状态层级、直观的历史曲线。</p>
       </div>
       <div class="badge-row">
         <div class="badge">HTTP 轮询: <span id="connState">轮询中</span></div>
@@ -491,7 +607,7 @@
         </div>
         <div class="card-body kpi">
           <div class="value" id="clusterValue">空闲</div>
-          <div class="label">广播流</div>
+          <div class="label">集群概况</div>
           <div class="mono muted" id="clusterDetail">等待第一份快照。</div>
         </div>
       </article>
@@ -502,7 +618,7 @@
         </div>
         <div class="card-body kpi">
           <div class="value" id="trafficValue">0 kbps</div>
-          <div class="label">可见节点网络总吞吐</div>
+          <div class="label">网络总吞吐</div>
           <div class="mono muted" id="trafficDetail">可见节点的 Rx / Tx 总吞吐。</div>
         </div>
       </article>
@@ -513,7 +629,7 @@
         </div>
         <div class="card-body kpi">
           <div class="value" id="healthValue">未知</div>
-          <div class="label">当前集群状态</div>
+          <div class="label">健康概况</div>
           <div class="mono muted" id="healthDetail">根据最新广播计算。</div>
         </div>
       </article>
@@ -823,6 +939,15 @@
       `;
     }
 
+    function miniStat(label, value) {
+      return `
+        <div class="mini-stat">
+          <div class="label">${escapeHtml(label)}</div>
+          <div class="value">${escapeHtml(String(value))}</div>
+        </div>
+      `;
+    }
+
     function statRow(name, value, percent) {
       return `
         <div class="stat-row">
@@ -845,7 +970,6 @@
       const mem = Number(runtime.memoryUsedPercent || 0);
       const swap = Number(runtime.swapUsedPercent || 0);
       const disk = Number(runtime.diskUsedPercent || 0);
-      const cpuHistory = sampleHistoryValues(history, (entry) => entry?.metrics?.runtime?.cpuUsedPercent ?? 0);
       const netHistory = sampleHistoryValues(history, (entry) => (entry?.metrics?.runtime?.netRxSpeedKbps ?? 0) + (entry?.metrics?.runtime?.netTxSpeedKbps ?? 0));
 
       const topItems = [
@@ -855,52 +979,59 @@
       ];
 
       return `
-        <article class="node">
-          <div class="node-top">
-            <div>
-              <h3 class="node-name">${escapeHtml(reg.nodeName || "未命名节点")}</h3>
+        <details class="node ${health}" ${state.forceCollapseAll ? "" : "open"}>
+          <summary class="node-summary">
+            <div class="node-main">
+              <div class="node-topline">
+                <h3 class="node-name">${escapeHtml(reg.nodeName || "未命名节点")}</h3>
+                <span class="pill ${healthClass(health)}">${healthLabel(health).toUpperCase()}</span>
+              </div>
               <div class="node-meta">
                 ${topItems.map((item) => `<span class="pill">${escapeHtml(item)}</span>`).join("")}
               </div>
             </div>
-            <div class="pill ${healthClass(health)}">${healthLabel(health).toUpperCase()}</div>
-          </div>
-
-          <div class="stat-list">
-            ${statRow("CPU", fmtPercent(cpu), cpu)}
-            ${statRow("内存", fmtPercent(mem), mem)}
-            ${statRow("交换分区", fmtPercent(swap), swap)}
-            ${statRow("磁盘", fmtPercent(disk), disk)}
-          </div>
-
-          <div class="sparkline-card">
-            <div>
-              <div class="sparkline-title">CPU 24 小时历史</div>
-              ${buildSparklineSvg(cpuHistory)}
+            <div class="node-side">
+              <div class="node-stats">
+                ${miniStat("CPU", fmtPercent(cpu))}
+                ${miniStat("MEM", fmtPercent(mem))}
+                ${miniStat("NET", `${fmtNumber(runtime.netRxSpeedKbps + runtime.netTxSpeedKbps, 1)} kbps`)}
+              </div>
+              <div class="node-indicator">
+                <span class="node-health-pill ${healthClass(health)}">${healthLabel(health)}</span>
+                <span class="mono muted">${fmtPercent(cpu)} CPU</span>
+              </div>
             </div>
-            <div class="mono muted">${cpuHistory.length} 个点</div>
-          </div>
+          </summary>
 
-          <div class="sparkline-card">
-            <div>
-              <div class="sparkline-title">网络 24 小时历史</div>
-              ${buildSparklineSvg(netHistory)}
+          <div class="node-expand">
+            <div class="stat-list">
+              ${statRow("CPU", fmtPercent(cpu), cpu)}
+              ${statRow("内存", fmtPercent(mem), mem)}
+              ${statRow("交换分区", fmtPercent(swap), swap)}
+              ${statRow("磁盘", fmtPercent(disk), disk)}
             </div>
-            <div class="mono muted">收 + 发</div>
-          </div>
 
-          <div class="history-grid">
-            ${historyBlock("型号", assets.cpuModelName || "暂无")}
-            ${historyBlock("系统", assets.osPlatform || "暂无")}
-            ${historyBlock("磁盘只读", sanity.diskReadOnlyPanic ? "是" : "否")}
-            ${historyBlock("接收", fmtBytes(runtime.bootTotalRxBytes || 0))}
-            ${historyBlock("发送", fmtBytes(runtime.bootTotalTxBytes || 0))}
-            ${historyBlock("IPv4 延迟", runtime.pingV4DelayMs ?? "暂无")}
-            ${historyBlock("IPv6 延迟", runtime.pingV6DelayMs ?? "暂无")}
-            ${historyBlock("磁盘读速", fmtBytes(runtime.diskReadBytesPerSec || 0))}
-            ${historyBlock("磁盘写速", fmtBytes(runtime.diskWriteBytesPerSec || 0))}
+            <div class="sparkline-card">
+              <div>
+                <div class="sparkline-title">网络 24 小时历史</div>
+                ${buildSparklineSvg(netHistory)}
+              </div>
+              <div class="mono muted">收 + 发</div>
+            </div>
+
+            <div class="history-grid">
+              ${historyBlock("型号", assets.cpuModelName || "暂无")}
+              ${historyBlock("系统", assets.osPlatform || "暂无")}
+              ${historyBlock("磁盘只读", sanity.diskReadOnlyPanic ? "是" : "否")}
+              ${historyBlock("接收", fmtBytes(runtime.bootTotalRxBytes || 0))}
+              ${historyBlock("发送", fmtBytes(runtime.bootTotalTxBytes || 0))}
+              ${historyBlock("IPv4 延迟", runtime.pingV4DelayMs ?? "暂无")}
+              ${historyBlock("IPv6 延迟", runtime.pingV6DelayMs ?? "暂无")}
+              ${historyBlock("磁盘读速", fmtBytes(runtime.diskReadBytesPerSec || 0))}
+              ${historyBlock("磁盘写速", fmtBytes(runtime.diskWriteBytesPerSec || 0))}
+            </div>
           </div>
-        </article>
+        </details>
       `;
     }
 
@@ -1050,11 +1181,12 @@
                 <summary>
                   <div>
                     <h3 class="group-title">${escapeHtml(group.groupName)}</h3>
-                    <div class="mono muted">${group.items.length} 台 · ${counts.healthy} 健康 · ${counts.warning} 警告 · ${counts.degraded} 退化</div>
+                    <div class="mono muted">${group.items.length} 台节点</div>
                   </div>
                   <div class="group-meta">
-                    <span class="pill">可见 ${group.items.length}</span>
-                    <span class="pill">总数 ${totalNodes}</span>
+                    <span class="pill">健康 ${counts.healthy}</span>
+                    <span class="pill">警告 ${counts.warning}</span>
+                    <span class="pill">退化 ${counts.degraded}</span>
                   </div>
                 </summary>
                 <div class="group-body">
