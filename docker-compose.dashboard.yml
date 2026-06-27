@@ -1,0 +1,36 @@
+services:
+  redis:
+    image: redis:7-alpine
+    command:
+      - redis-server
+      - --appendonly
+      - "yes"
+      - --save
+      - "60"
+      - "1"
+    volumes:
+      - redis-data:/data
+    ports:
+      - "6379:6379"
+    restart: unless-stopped
+
+  dashboard:
+    build:
+      context: .
+      dockerfile: src/GhostMon.Dashboard/Dockerfile
+    depends_on:
+      - redis
+    environment:
+      ASPNETCORE_URLS: http://0.0.0.0:8080
+      RedisConnectionString: ${RedisConnectionString:-redis:6379,abortConnect=false}
+      SecurityToken: ${SecurityToken:-replace-with-a-shared-secret}
+      TelemetryIntervalSeconds: ${TelemetryIntervalSeconds:-5}
+      PingTimeoutMilliseconds: ${PingTimeoutMilliseconds:-500}
+      PingTargetMode: ${PingTargetMode:-Both}
+      PingTargets: ${PingTargets:-}
+    ports:
+      - "8080:8080"
+    restart: unless-stopped
+
+volumes:
+  redis-data:

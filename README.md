@@ -12,7 +12,8 @@ GhostMon 是一套轻量服务器探针系统，包含两个组件：
 ### Docker Compose
 
 ```bash
-docker compose up -d --build
+docker compose -f docker-compose.dashboard.yml up -d --build
+docker compose -f docker-compose.agent.yml up -d --build
 ```
 
 ### 本地开发
@@ -72,9 +73,10 @@ dotnet run --project src/GhostMon.Agent
 适用文件：
 
 - `.env.example`
-- `docker-compose.yml`
+- `docker-compose.dashboard.yml`
+- `docker-compose.agent.yml`
 
-#### Shared
+#### Dashboard + Redis
 
 | Key | 默认值 | 说明 |
 | --- | --- | --- |
@@ -84,8 +86,6 @@ dotnet run --project src/GhostMon.Agent
 | `PingTargetMode` | `Both` | `V4` / `V6` / `Both` |
 | `PingTargets` | 空 | 留空则不执行 ping |
 
-#### Dashboard
-
 | Key | 默认值 | 说明 |
 | --- | --- | --- |
 | `RedisConnectionString` | `redis:6379,abortConnect=false` | Compose 内 Redis 服务地址 |
@@ -94,7 +94,7 @@ dotnet run --project src/GhostMon.Agent
 
 | Key | 默认值 | 说明 |
 | --- | --- | --- |
-| `DashboardBaseUrl` | `http://dashboard:8080` | Compose 内 Dashboard 服务地址 |
+| `DashboardBaseUrl` | `http://host.docker.internal:8080` | Agent 通过宿主机访问 Dashboard |
 | `NodeName` | `node-01` | 节点名 |
 | `GroupName` | `default` | 分组名 |
 | `AgentPort` | `8081` | Agent 监听端口 |
@@ -103,6 +103,20 @@ dotnet run --project src/GhostMon.Agent
 | `HostRootPath` | `/host-root` | 宿主机根目录挂载点 |
 | `HostTmpPath` | `/host-tmp` | 宿主机 `/tmp` 挂载点 |
 | `PingTargets` | 空 | 留空则不执行 ping |
+
+### 部署方式
+
+#### Dashboard + Redis
+
+```bash
+docker compose -f docker-compose.dashboard.yml up -d --build
+```
+
+#### Agent
+
+```bash
+docker compose -f docker-compose.agent.yml up -d --build
+```
 
 ## 路由
 
