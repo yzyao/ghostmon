@@ -37,6 +37,7 @@
         linear-gradient(160deg, var(--bg), var(--bg2));
       position: relative;
       overflow-x: hidden;
+      scroll-behavior: smooth;
     }
 
     body::before {
@@ -55,40 +56,96 @@
     .shell {
       max-width: 1480px;
       margin: 0 auto;
-      padding: 20px;
+      padding: 16px 20px 20px;
       position: relative;
       z-index: 1;
     }
 
-    .hero {
+    .topbar {
+      position: sticky;
+      top: 12px;
+      z-index: 5;
       display: grid;
-      grid-template-columns: minmax(0, 1fr) auto;
-      gap: 16px;
+      grid-template-columns: minmax(0, auto) minmax(0, 1fr) auto;
+      gap: 18px;
       align-items: center;
-      margin-bottom: 18px;
-      padding: 18px 20px;
+      margin-bottom: 16px;
+      padding: 12px 16px;
       border: 1px solid var(--panel-border);
-      border-radius: calc(var(--radius) + 2px);
-      background: rgba(12, 17, 29, 0.72);
+      border-radius: 16px;
+      background: rgba(10, 15, 26, 0.88);
+      backdrop-filter: blur(18px);
       box-shadow: var(--shadow);
     }
 
-    .title {
+    .brand {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      min-width: 0;
+    }
+
+    .brand-mark {
+      width: 38px;
+      height: 38px;
+      border-radius: 12px;
+      display: grid;
+      place-items: center;
+      border: 1px solid rgba(96, 213, 255, 0.28);
+      background: linear-gradient(160deg, rgba(96, 213, 255, 0.18), rgba(137, 231, 168, 0.10));
+      color: var(--accent);
+      font-weight: 700;
+      letter-spacing: -0.04em;
+      flex: 0 0 auto;
+    }
+
+    .brand-copy {
+      min-width: 0;
+      display: grid;
+      gap: 2px;
+    }
+
+    .brand-title {
       margin: 0;
-      font-size: clamp(1.8rem, 2.6vw, 3.2rem);
-      line-height: 1;
-      letter-spacing: -0.05em;
+      font-size: 18px;
+      line-height: 1.1;
+      letter-spacing: -0.04em;
     }
 
-    .subtitle {
-      margin: 10px 0 0;
+    .brand-subtitle {
+      margin: 0;
       color: var(--muted);
-      max-width: 80ch;
-      line-height: 1.5;
-      font-size: 14px;
+      font-size: 12px;
+      line-height: 1.2;
     }
 
-    .badge-row {
+    .nav-links {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      justify-content: center;
+    }
+
+    .nav-link {
+      display: inline-flex;
+      align-items: center;
+      padding: 8px 12px;
+      border-radius: 999px;
+      border: 1px solid transparent;
+      color: var(--muted);
+      text-decoration: none;
+      font-size: 12px;
+      transition: background 0.15s ease, border-color 0.15s ease, color 0.15s ease;
+    }
+
+    .nav-link:hover,
+    .nav-link.active {
+      border-color: rgba(96, 213, 255, 0.28);
+      background: rgba(96, 213, 255, 0.08);
+      color: var(--text);
+    }
+
+    .topbar-actions {
       display: flex;
       flex-wrap: wrap;
       gap: 10px;
@@ -558,36 +615,45 @@
 
     @media (max-width: 1100px) {
       .span-6, .span-4 { grid-column: span 12; }
-      .hero { grid-template-columns: 1fr; }
-      .badge-row { justify-content: flex-start; }
+      .topbar { grid-template-columns: 1fr; justify-items: start; }
+      .nav-links { justify-content: flex-start; }
+      .topbar-actions { justify-content: flex-start; }
       .stat-row { grid-template-columns: 1fr; }
     }
 
     @media (max-width: 720px) {
       .shell { padding: 14px; }
-      .hero { padding: 14px; }
-      .title { font-size: 2rem; }
+      .topbar { top: 8px; padding: 12px; }
+      .brand-mark { width: 34px; height: 34px; border-radius: 10px; }
+      .brand-title { font-size: 16px; }
       .control-row { align-items: stretch; }
     }
   </style>
 </head>
 <body>
   <div class="shell">
-    <section class="hero">
-      <div>
-        <h1 class="title">GhostMon 控制台</h1>
-        <p class="subtitle">更克制的服务器监控面板。高密度节点列表、清晰的状态层级、直观的历史曲线。</p>
+    <header class="topbar">
+      <div class="brand">
+        <div class="brand-mark">G</div>
+        <div class="brand-copy">
+          <h1 class="brand-title">GhostMon</h1>
+          <p class="brand-subtitle">Monitoring Console</p>
+        </div>
       </div>
-      <div class="badge-row">
+      <nav class="nav-links" aria-label="页面导航">
+        <a class="nav-link active" href="#overview">概览</a>
+        <a class="nav-link" href="#install">安装</a>
+        <a class="nav-link" href="#nodes">节点</a>
+      </nav>
+      <div class="topbar-actions">
         <div class="badge">HTTP 轮询: <span id="connState">轮询中</span></div>
         <div class="badge">节点数: <span id="nodeCount">0</span></div>
         <div class="badge">可见: <span id="visibleCount">0</span></div>
-        <div class="badge">最近更新: <span id="lastUpdate">-</span></div>
       </div>
-    </section>
+    </header>
 
-    <section class="grid">
-      <article class="card span-12">
+    <section class="grid" id="overview">
+      <article class="card span-12" id="install">
         <div class="card-head">
           <h2 class="card-title">Agent 安装</h2>
           <div class="mono muted" id="agentInstallStatus">等待生成安装命令。</div>
@@ -662,7 +728,7 @@
         </div>
       </article>
 
-      <article class="card span-12">
+      <article class="card span-12" id="nodesCard">
         <div class="card-head">
           <h2 class="card-title">节点</h2>
           <div class="mono muted">按分组展示 24 小时历史曲线</div>
