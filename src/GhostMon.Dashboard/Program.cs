@@ -29,6 +29,7 @@ app.UseStaticFiles();
 app.MapGet("/healthz", static () => Results.Text("ok", "text/plain"));
 app.MapGet(DashboardConstants.SnapshotPath, MapSnapshot);
 app.MapGet(DashboardConstants.AgentConfigPath, GetAgentConfig);
+app.MapGet(DashboardConstants.AgentInstallConfigPath, GetAgentInstallConfig);
 app.MapPost(DashboardConstants.IngestPath, IngestNode);
 app.MapHub<ProbeHub>(DashboardConstants.HubPath);
 
@@ -52,6 +53,21 @@ static IResult GetAgentConfig(DashboardRuntimeSettings runtimeSettings)
     };
 
     return Results.Json(config, ProbeJsonContext.Default.AgentRuntimeConfig);
+}
+
+static IResult GetAgentInstallConfig(DashboardRuntimeSettings runtimeSettings)
+{
+    var config = new AgentInstallConfig
+    {
+        AgentImage = runtimeSettings.AgentImage,
+        SecurityToken = runtimeSettings.SecurityToken,
+        TelemetryIntervalSeconds = runtimeSettings.TelemetryIntervalSeconds,
+        PingTimeoutMilliseconds = runtimeSettings.PingTimeoutMilliseconds,
+        PingTargetMode = runtimeSettings.PingTargetMode,
+        PingTargets = runtimeSettings.PingTargets
+    };
+
+    return Results.Json(config, ProbeJsonContext.Default.AgentInstallConfig);
 }
 
 static async Task<IResult> IngestNode(

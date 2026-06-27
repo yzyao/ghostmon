@@ -6,6 +6,7 @@ namespace GhostMon.Dashboard;
 public sealed record class DashboardRuntimeSettings(
     string RedisConnectionString,
     string SecurityToken,
+    string AgentImage,
     int TelemetryIntervalSeconds,
     int PingTimeoutMilliseconds,
     PingTargetMode PingTargetMode,
@@ -27,6 +28,8 @@ public sealed record class DashboardRuntimeSettings(
             throw new InvalidOperationException("Required setting SecurityToken is missing.");
         }
 
+        var agentImage = configuration["AgentImage"] ?? configuration["AGENT_IMAGE"] ?? "docker.io/<your-namespace>/ghostmon-agent:latest";
+
         var telemetryIntervalSeconds = configuration.GetValue<int?>("TelemetryIntervalSeconds")
             ?? configuration.GetValue<int?>("TELEMETRY_INTERVAL_SECONDS")
             ?? 5;
@@ -41,6 +44,7 @@ public sealed record class DashboardRuntimeSettings(
         return new DashboardRuntimeSettings(
             RedisConnectionString: redisConnectionString,
             SecurityToken: securityToken,
+            AgentImage: agentImage,
             TelemetryIntervalSeconds: telemetryIntervalSeconds,
             PingTimeoutMilliseconds: pingTimeoutMilliseconds,
             PingTargetMode: pingTargetMode,

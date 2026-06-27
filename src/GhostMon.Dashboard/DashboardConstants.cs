@@ -7,6 +7,7 @@ internal static class DashboardConstants
     public const string RedisHistoryKeyPrefix = RedisKeyPrefix + "history:";
     public const string SnapshotPath = "/api/snapshot";
     public const string AgentConfigPath = "/api/agent-config";
+    public const string AgentInstallConfigPath = "/api/agent-install-config";
     public const string IngestPath = "/api/ingest";
     public const string HubPath = "/hubs/probe";
     public const string SnapshotUpdatedEvent = "SnapshotUpdated";

@@ -80,6 +80,35 @@ public sealed record class AgentRuntimeConfig
     public string[] PingTargets { get; init; } = Array.Empty<string>();
 }
 
+public sealed record class AgentInstallConfig
+{
+    public string AgentImage { get; init; } = "docker.io/<your-namespace>/ghostmon-agent:latest";
+
+    public string SecurityToken { get; init; } = "replace-with-a-shared-secret";
+
+    public string NodeName { get; init; } = "node-01";
+
+    public string GroupName { get; init; } = "default";
+
+    public int AgentPort { get; init; } = 8081;
+
+    public int TelemetryIntervalSeconds { get; init; } = 5;
+
+    public int PingTimeoutMilliseconds { get; init; } = 500;
+
+    public PingTargetMode PingTargetMode { get; init; } = PingTargetMode.Both;
+
+    public string[] PingTargets { get; init; } = Array.Empty<string>();
+
+    public string HostProcPath { get; init; } = "/proc";
+
+    public string HostSysPath { get; init; } = "/sys";
+
+    public string HostRootPath { get; init; } = "/";
+
+    public string HostTmpPath { get; init; } = "/tmp";
+}
+
 public enum PingTargetMode
 {
     V4 = 1,

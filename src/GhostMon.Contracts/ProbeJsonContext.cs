@@ -12,6 +12,7 @@ namespace GhostMon.Contracts;
 [JsonSerializable(typeof(ProbeMetrics))]
 [JsonSerializable(typeof(NodeTelemetryReport))]
 [JsonSerializable(typeof(AgentRuntimeConfig))]
+[JsonSerializable(typeof(AgentInstallConfig))]
 [JsonSerializable(typeof(PingTargetMode))]
 [JsonSerializable(typeof(NodeRegistryRecord))]
 [JsonSerializable(typeof(HistoricalSnapshot))]

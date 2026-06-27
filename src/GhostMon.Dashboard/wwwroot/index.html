@@ -117,6 +117,58 @@
       padding: 18px;
     }
 
+    .command-toolbar {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      margin-bottom: 12px;
+    }
+
+    .command-note {
+      color: var(--muted);
+      font-size: 13px;
+      line-height: 1.5;
+    }
+
+    .command-shell {
+      margin: 0;
+      padding: 16px;
+      border-radius: 16px;
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      background: rgba(0, 0, 0, 0.24);
+      color: var(--text);
+      font-family: var(--mono);
+      font-size: 12px;
+      line-height: 1.7;
+      white-space: pre-wrap;
+      word-break: break-word;
+      overflow-x: auto;
+    }
+
+    .copy-button {
+      border: 1px solid rgba(99, 210, 255, 0.35);
+      background: rgba(99, 210, 255, 0.12);
+      color: var(--text);
+      border-radius: 999px;
+      padding: 10px 14px;
+      cursor: pointer;
+      font: inherit;
+      font-size: 13px;
+      transition: transform 0.15s ease, background 0.15s ease, border-color 0.15s ease;
+    }
+
+    .copy-button:hover {
+      transform: translateY(-1px);
+      background: rgba(99, 210, 255, 0.18);
+      border-color: rgba(99, 210, 255, 0.5);
+    }
+
+    .copy-button:active {
+      transform: translateY(0);
+    }
+
     .kpi {
       display: grid;
       gap: 8px;
@@ -419,6 +471,20 @@
     </section>
 
     <section class="grid">
+      <article class="card span-12">
+        <div class="card-head">
+          <h2 class="card-title">Agent 安装</h2>
+          <div class="mono muted" id="agentInstallStatus">等待生成安装命令。</div>
+        </div>
+        <div class="card-body">
+          <div class="command-toolbar">
+            <div class="command-note">复制后直接在被监控服务器执行。命令会使用 Dashboard 当前配置和当前访问地址。</div>
+            <button class="copy-button" id="copyAgentInstallBtn" type="button">复制命令</button>
+          </div>
+          <pre class="command-shell" id="agentInstallCommand">加载中...</pre>
+        </div>
+      </article>
+
       <article class="card span-4">
         <div class="card-head">
           <h2 class="card-title">集群状态</h2>
@@ -495,6 +561,8 @@
   <script>
     const state = {
       snapshot: null,
+      installConfig: null,
+      installCommand: "",
       lastSnapshotJson: "",
       lastRenderKey: "",
       search: "",
@@ -534,6 +602,63 @@
       if (v >= 1e6) return `${(v / 1e6).toFixed(2)} MB`;
       if (v >= 1e3) return `${(v / 1e3).toFixed(2)} KB`;
       return `${v.toFixed(0)} B`;
+    }
+
+    function shellQuote(value) {
+      return `'${String(value ?? "").split("'").join("'\\''")}'`;
+    }
+
+    function buildAgentInstallCommand(config) {
+      const currentConfig = config || {};
+      const agentPort = Number(currentConfig.agentPort || 8081);
+      const hostProcPath = currentConfig.hostProcPath || "/proc";
+      const hostSysPath = currentConfig.hostSysPath || "/sys";
+      const hostRootPath = currentConfig.hostRootPath || "/";
+      const hostTmpPath = currentConfig.hostTmpPath || "/tmp";
+      const pingTargets = Array.isArray(currentConfig.pingTargets) ? currentConfig.pingTargets.join(",") : "";
+      const dashboardBaseUrl = window.location.origin;
+      const agentImage = currentConfig.agentImage || "docker.io/<your-namespace>/ghostmon-agent:latest";
+
+      return [
+        "docker run -d \\",
+        "  --name ghostmon-agent \\",
+        "  --restart unless-stopped \\",
+        "  --add-host=host.docker.internal:host-gateway \\",
+        `  -p ${agentPort}:${agentPort} \\`,
+        `  -e DashboardBaseUrl=${shellQuote(dashboardBaseUrl)} \\`,
+        `  -e SecurityToken=${shellQuote(currentConfig.securityToken)} \\`,
+        `  -e NodeName=${shellQuote(currentConfig.nodeName || "node-01")} \\`,
+        `  -e GroupName=${shellQuote(currentConfig.groupName || "default")} \\`,
+        `  -e AgentPort=${shellQuote(agentPort)} \\`,
+        `  -e TelemetryIntervalSeconds=${shellQuote(currentConfig.telemetryIntervalSeconds || 5)} \\`,
+        `  -e PingTimeoutMilliseconds=${shellQuote(currentConfig.pingTimeoutMilliseconds || 500)} \\`,
+        `  -e PingTargetMode=${shellQuote(currentConfig.pingTargetMode || "Both")} \\`,
+        `  -e PingTargets=${shellQuote(pingTargets)} \\`,
+        `  -e HostProcPath=${shellQuote(hostProcPath)} \\`,
+        `  -e HostSysPath=${shellQuote(hostSysPath)} \\`,
+        `  -e HostRootPath=${shellQuote(hostRootPath)} \\`,
+        `  -e HostTmpPath=${shellQuote(hostTmpPath)} \\`,
+        `  -v /proc:${hostProcPath}:ro \\`,
+        `  -v /sys:${hostSysPath}:ro \\`,
+        `  -v /:${hostRootPath}:ro \\`,
+        `  -v /tmp:${hostTmpPath} \\`,
+        `  ${shellQuote(agentImage)}`
+      ].join("\n");
+    }
+
+    function renderAgentInstallCommand(config) {
+      state.installConfig = config || null;
+      state.installCommand = buildAgentInstallCommand(config);
+      const commandEl = el("agentInstallCommand");
+      const statusEl = el("agentInstallStatus");
+      if (commandEl) {
+        commandEl.textContent = state.installCommand;
+      }
+      if (statusEl) {
+        statusEl.textContent = config?.agentImage
+          ? "已根据 Dashboard 配置生成。"
+          : "使用默认值生成。";
+      }
     }
 
     function formatTime(value) {
@@ -960,6 +1085,22 @@
       }
     }
 
+    async function fetchAgentInstallConfig() {
+      try {
+        const response = await fetch("/api/agent-install-config", { cache: "no-store" });
+        if (!response.ok) {
+          renderAgentInstallCommand({});
+          return;
+        }
+
+        const config = await response.json();
+        renderAgentInstallCommand(config);
+      } catch (err) {
+        console.error(err);
+        renderAgentInstallCommand({});
+      }
+    }
+
     function loadSignalRLibrary() {
       if (window.signalR?.HubConnectionBuilder) {
         return Promise.resolve(window.signalR);
@@ -1042,6 +1183,25 @@
       fetchSnapshot();
     });
 
+    el("copyAgentInstallBtn").addEventListener("click", async () => {
+      const text = state.installCommand || buildAgentInstallCommand(state.installConfig || {});
+      try {
+        await navigator.clipboard.writeText(text);
+        el("agentInstallStatus").textContent = "命令已复制到剪贴板。";
+      } catch (err) {
+        const textarea = document.createElement("textarea");
+        textarea.value = text;
+        textarea.setAttribute("readonly", "true");
+        textarea.style.position = "fixed";
+        textarea.style.left = "-9999px";
+        document.body.appendChild(textarea);
+        textarea.select();
+        document.execCommand("copy");
+        document.body.removeChild(textarea);
+        el("agentInstallStatus").textContent = "命令已复制到剪贴板。";
+      }
+    });
+
     document.addEventListener("toggle", (event) => {
       const details = event.target;
       if (!(details instanceof HTMLDetailsElement) || !details.dataset.group) {
@@ -1052,6 +1212,8 @@
     }, true);
 
     fetchSnapshot();
+    renderAgentInstallCommand({});
+    fetchAgentInstallConfig();
     connectSignalR();
   </script>
 </body>

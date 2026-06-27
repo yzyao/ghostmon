@@ -1,4 +1,4 @@
-﻿# GhostMon
+# GhostMon
 
 GhostMon 是一套轻量服务器探针系统，包含两个组件：
 
@@ -9,12 +9,73 @@ GhostMon 是一套轻量服务器探针系统，包含两个组件：
 
 ## 运行
 
-### Docker Compose
+### 本地测试
 
 ```bash
-docker compose -f docker-compose.dashboard.yml up -d --build
-docker compose -f docker-compose.agent.yml up -d --build
+docker compose -f docker-compose.local.yml up -d --build
 ```
+
+这套配置会同时启动 `Dashboard + Agent + Redis`，适合本地联调和快速验证。
+
+### DockerHub
+
+```bash
+docker compose up -d
+```
+
+这套配置直接拉取 Docker Hub 发布镜像，适合生产部署或远程主机快速启动。
+先把 `docker-compose.yml` 里的 `<your-namespace>` 替换成你的 Docker Hub 命名空间。
+
+### Agent 直跑
+
+Dashboard 页面会显示一条可复制的 Agent `docker run` 命令，默认使用当前 Dashboard 的 `AgentImage` 生成。
+
+如果你只想单独启动 Agent，也可以直接复制页面上的命令，或者手动运行：
+
+```bash
+docker run -d \
+  --name ghostmon-agent \
+  --restart unless-stopped \
+  --add-host=host.docker.internal:host-gateway \
+  -p 8081:8081 \
+  -e DashboardBaseUrl=http://host.docker.internal:8080 \
+  -e SecurityToken=replace-with-a-shared-secret \
+  -e NodeName=node-01 \
+  -e GroupName=default \
+  -e AgentPort=8081 \
+  -e TelemetryIntervalSeconds=5 \
+  -e PingTimeoutMilliseconds=500 \
+  -e PingTargetMode=Both \
+  -e PingTargets= \
+  -e HostProcPath=/host-proc \
+  -e HostSysPath=/host-sys \
+  -e HostRootPath=/host-root \
+  -e HostTmpPath=/host-tmp \
+  -v /proc:/host-proc:ro \
+  -v /sys:/host-sys:ro \
+  -v /:/host-root:ro \
+  -v /tmp:/host-tmp \
+  docker.io/<your-namespace>/ghostmon-agent:latest
+```
+
+### 发布镜像
+
+GitHub Actions 会在 `main` 分支推送时只做构建校验，在 `v*` 标签推送时发布到两个独立的 Docker Hub 仓库：
+
+- `ghostmon-agent`
+- `ghostmon-dashboard`
+
+每个仓库都会带上：
+
+- `vX.Y.Z`
+- `latest`
+- `sha` 构建标记
+
+Docker Hub 需要配置以下 Secrets：
+
+- `DOCKERHUB_USERNAME`：登录用户名
+- `DOCKERHUB_TOKEN`：访问令牌
+- `DOCKERHUB_NAMESPACE`：镜像仓库命名空间，通常和用户名一致，若发布到组织仓库则填组织名
 
 ### 本地开发
 
@@ -63,6 +124,7 @@ dotnet run --project src/GhostMon.Agent
 | --- | --- | --- |
 | `RedisConnectionString` | `127.0.0.1:6379,abortConnect=false` | Redis 连接串 |
 | `SecurityToken` | `replace-with-a-shared-secret` | 与 Agent 共享的鉴权口令 |
+| `AgentImage` | `docker.io/<your-namespace>/ghostmon-agent:latest` | Dashboard 页面里展示的 Agent 镜像引用 |
 | `TelemetryIntervalSeconds` | `5` | 下发给 Agent 的遥测间隔 |
 | `PingTimeoutMilliseconds` | `500` | 下发给 Agent 的 ping 超时 |
 | `PingTargetMode` | `Both` | 下发给 Agent 的 ping 模式 |
@@ -73,10 +135,10 @@ dotnet run --project src/GhostMon.Agent
 适用文件：
 
 - `.env.example`
-- `docker-compose.dashboard.yml`
-- `docker-compose.agent.yml`
+- `docker-compose.local.yml`
+- `docker-compose.yml`
 
-#### Dashboard + Redis
+#### Shared
 
 | Key | 默认值 | 说明 |
 | --- | --- | --- |
@@ -86,37 +148,39 @@ dotnet run --project src/GhostMon.Agent
 | `PingTargetMode` | `Both` | `V4` / `V6` / `Both` |
 | `PingTargets` | 空 | 留空则不执行 ping |
 
+#### Local Compose
+
 | Key | 默认值 | 说明 |
 | --- | --- | --- |
 | `RedisConnectionString` | `redis:6379,abortConnect=false` | Compose 内 Redis 服务地址 |
+| `DashboardBaseUrl` | `http://dashboard:8080` | Agent 访问 Dashboard 的内网地址 |
+| `DashboardImage` | `ghostmon-dashboard:local` | Dashboard 本地构建镜像 |
+| `AgentImage` | `ghostmon-agent:local` | Agent 本地构建镜像 |
 
-#### Agent
+#### DockerHub Compose
 
 | Key | 默认值 | 说明 |
 | --- | --- | --- |
-| `DashboardBaseUrl` | `http://host.docker.internal:8080` | Agent 通过宿主机访问 Dashboard |
-| `NodeName` | `node-01` | 节点名 |
-| `GroupName` | `default` | 分组名 |
-| `AgentPort` | `8081` | Agent 监听端口 |
-| `HostProcPath` | `/host-proc` | 宿主机 `/proc` 挂载点 |
-| `HostSysPath` | `/host-sys` | 宿主机 `/sys` 挂载点 |
-| `HostRootPath` | `/host-root` | 宿主机根目录挂载点 |
-| `HostTmpPath` | `/host-tmp` | 宿主机 `/tmp` 挂载点 |
-| `PingTargets` | 空 | 留空则不执行 ping |
+| `RedisConnectionString` | `redis:6379,abortConnect=false` | Compose 内 Redis 服务地址 |
+| `DashboardBaseUrl` | `http://dashboard:8080` | Agent 访问 Dashboard 的内网地址 |
+| `DashboardImage` | `docker.io/<your-namespace>/ghostmon-dashboard:latest` | Dashboard 发布镜像 |
+| `AgentImage` | `docker.io/<your-namespace>/ghostmon-agent:latest` | Agent 发布镜像 |
 
 ### 部署方式
 
-#### Dashboard + Redis
+#### 本地测试
 
 ```bash
-docker compose -f docker-compose.dashboard.yml up -d --build
+docker compose -f docker-compose.local.yml up -d --build
 ```
 
-#### Agent
+#### DockerHub
 
 ```bash
-docker compose -f docker-compose.agent.yml up -d --build
+docker compose up -d
 ```
+
+Dashboard 页面会显示一条可复制的 Agent `docker run` 命令，默认使用当前 Dashboard 的 `AgentImage` 生成。
 
 ## 路由
 
@@ -130,6 +194,7 @@ docker compose -f docker-compose.agent.yml up -d --build
 - `GET /healthz`
 - `GET /api/snapshot`
 - `GET /api/agent-config`
+- `GET /api/agent-install-config`
 - `POST /api/ingest`
 - `GET /hubs/probe`
 
@@ -141,6 +206,7 @@ docker compose -f docker-compose.agent.yml up -d --build
 - Agent 不依赖 Redis SDK
 - Dashboard 通过 Redis 保存当前节点与 24 小时历史
 - Dashboard 通过 SignalR 向前端推送快照
+- Dashboard 提供可复制的 Agent 安装命令
 - `PingTargets` 为空时，Agent 不会发起 ping
 - Agent 通过配置中心同步 `TelemetryIntervalSeconds`、`PingTimeoutMilliseconds`、`PingTargetMode` 和 `PingTargets`
 
