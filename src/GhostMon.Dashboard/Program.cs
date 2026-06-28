@@ -48,6 +48,21 @@ app.MapGet(DashboardConstants.AgentConfigPath, DashboardEndpoints.GetAgentConfig
 app.MapGet(DashboardConstants.AgentInstallConfigPath, DashboardEndpoints.GetAgentInstallConfigForTests);
 app.MapPost(DashboardConstants.IngestPath, DashboardEndpoints.IngestNodeForTests);
 
+app.MapGet("/demo-check", static () => Results.Content("""
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>GhostMon Demo</title>
+</head>
+<body>
+    <h1>GhostMon Demo</h1>
+    <p>This endpoint is a plain server-side check.</p>
+</body>
+</html>
+""", "text/html"));
+
 app.MapGet("/healthz", static () => Results.Text("ok", "text/plain"));
 
 app.Logger.LogInformation("GhostMon Dashboard started.");
