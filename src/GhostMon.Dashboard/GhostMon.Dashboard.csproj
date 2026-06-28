@@ -8,7 +8,6 @@
     <PublishAot>false</PublishAot>
     <IsAotCompatible>false</IsAotCompatible>
     <InvariantGlobalization>true</InvariantGlobalization>
-    <JsonSerializerIsReflectionEnabledByDefault>false</JsonSerializerIsReflectionEnabledByDefault>
   </PropertyGroup>
 
   <ItemGroup>
