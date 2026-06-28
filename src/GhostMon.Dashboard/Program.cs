@@ -13,6 +13,7 @@ builder.Services.AddSingleton(runtimeSettings);
 builder.Services.AddSingleton<IConnectionMultiplexer>(_ =>
     ConnectionMultiplexer.Connect(runtimeSettings.RedisConnectionString));
 builder.Services.AddSingleton<RedisProbeStore>();
+builder.Services.AddSingleton<IProbeStore>(sp => sp.GetRequiredService<RedisProbeStore>());
 builder.Services.AddMudServices();
 builder.Services.AddRazorComponents()
     .AddInteractiveServerComponents();
