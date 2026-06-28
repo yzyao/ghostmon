@@ -41,6 +41,12 @@ app.MapStaticAssets();
 app.MapRazorComponents<App>()
     .AddInteractiveServerRenderMode();
 
+app.MapGet(DashboardConstants.SnapshotPath, DashboardEndpoints.MapSnapshotForTests);
+app.MapGet(DashboardConstants.NodeDetailPath, DashboardEndpoints.GetNodeDetailForTests);
+app.MapGet(DashboardConstants.AgentConfigPath, DashboardEndpoints.GetAgentConfigForTests);
+app.MapGet(DashboardConstants.AgentInstallConfigPath, DashboardEndpoints.GetAgentInstallConfigForTests);
+app.MapPost(DashboardConstants.IngestPath, DashboardEndpoints.IngestNodeForTests);
+
 app.MapGet("/healthz", static () => Results.Text("ok", "text/plain"));
 
 app.Logger.LogInformation("GhostMon Dashboard started.");
