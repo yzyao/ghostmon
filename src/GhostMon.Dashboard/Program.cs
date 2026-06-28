@@ -2,6 +2,7 @@ using System.IO.Compression;
 using GhostMon.Contracts;
 using MudBlazor.Services;
 using Microsoft.AspNetCore.ResponseCompression;
+using Microsoft.AspNetCore.Routing;
 using StackExchange.Redis;
 using GhostMon.Dashboard;
 using GhostMon.Dashboard.Components;
@@ -62,6 +63,22 @@ app.MapGet("/demo-check", static () => Results.Content("""
 </body>
 </html>
 """, "text/html"));
+
+app.MapGet("/routes-check", (IEnumerable<EndpointDataSource> sources) =>
+{
+    var routes = sources
+        .SelectMany(source => source.Endpoints)
+        .OfType<RouteEndpoint>()
+        .Select(endpoint => new
+        {
+            Pattern = endpoint.RoutePattern.RawText,
+            DisplayName = endpoint.DisplayName
+        })
+        .OrderBy(item => item.Pattern)
+        .ToArray();
+
+    return Results.Json(routes);
+});
 
 app.MapGet("/healthz", static () => Results.Text("ok", "text/plain"));
 
