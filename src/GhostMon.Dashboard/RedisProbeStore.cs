@@ -137,7 +137,11 @@ public sealed class RedisProbeStore
 
     private static NodeBroadcastSnapshot BuildNodeBroadcastSnapshot(NodeRegistryRecord record, HistoricalSnapshot[] history)
     {
-        var currentMetrics = record.CurrentMetrics ?? (history.Length > 0 ? history[0].Metrics : new ProbeMetrics { Assets = record.Assets });
+        var currentMetrics = record.CurrentMetrics ?? new ProbeMetrics
+        {
+            Assets = record.Assets,
+            Runtime = history.Length > 0 ? history[0].Runtime : default
+        };
 
         return new NodeBroadcastSnapshot
         {

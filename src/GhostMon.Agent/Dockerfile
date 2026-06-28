@@ -10,5 +10,4 @@ FROM alpine:3.20 AS final
 RUN apk add --no-cache libstdc++ libgcc zlib ca-certificates
 WORKDIR /app
 COPY --from=build /app/publish .
-EXPOSE 8081
 ENTRYPOINT ["./GhostMon.Agent"]

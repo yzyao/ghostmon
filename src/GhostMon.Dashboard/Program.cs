@@ -1,6 +1,8 @@
 using System.Net;
+using System.IO.Compression;
 using System.Text.Json;
 using GhostMon.Contracts;
+using Microsoft.AspNetCore.ResponseCompression;
 using StackExchange.Redis;
 using GhostMon.Dashboard;
 
@@ -11,11 +13,26 @@ builder.Services.AddSingleton(runtimeSettings);
 builder.Services.AddSingleton<IConnectionMultiplexer>(_ =>
     ConnectionMultiplexer.Connect(runtimeSettings.RedisConnectionString));
 builder.Services.AddSingleton<RedisProbeStore>();
+builder.Services.AddResponseCompression(options =>
+{
+    options.EnableForHttps = true;
+    options.Providers.Add<BrotliCompressionProvider>();
+    options.Providers.Add<GzipCompressionProvider>();
+});
+builder.Services.Configure<BrotliCompressionProviderOptions>(options =>
+{
+    options.Level = CompressionLevel.SmallestSize;
+});
+builder.Services.Configure<GzipCompressionProviderOptions>(options =>
+{
+    options.Level = CompressionLevel.SmallestSize;
+});
 
 var app = builder.Build();
 
 await app.Services.GetRequiredService<RedisProbeStore>().RefreshSnapshotAsync();
 
+app.UseResponseCompression();
 app.UseDefaultFiles();
 app.UseStaticFiles();
 
@@ -111,7 +128,7 @@ static async Task<IResult> IngestNode(
     var snapshot = new HistoricalSnapshot
     {
         CapturedAtUtc = now,
-        Metrics = request.Metrics
+        Runtime = request.Metrics.Runtime
     };
 
     await store.UpsertNodeAsync(record, snapshot);

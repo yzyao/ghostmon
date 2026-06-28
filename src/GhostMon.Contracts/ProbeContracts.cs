@@ -145,7 +145,7 @@ public sealed record class HistoricalSnapshot
 {
     public DateTimeOffset CapturedAtUtc { get; init; }
 
-    public ProbeMetrics Metrics { get; init; } = new();
+    public ProbeRuntimeInfo Runtime { get; init; }
 }
 
 public sealed record class NodeBroadcastSnapshot

@@ -1036,7 +1036,7 @@
       const mem = Number(runtime.memoryUsedPercent || 0);
       const swap = Number(runtime.swapUsedPercent || 0);
       const disk = Number(runtime.diskUsedPercent || 0);
-      const netHistory = sampleHistoryValues(history, (entry) => (entry?.metrics?.runtime?.netRxSpeedKbps ?? 0) + (entry?.metrics?.runtime?.netTxSpeedKbps ?? 0));
+      const netHistory = sampleHistoryValues(history, (entry) => (entry?.runtime?.netRxSpeedKbps ?? 0) + (entry?.runtime?.netTxSpeedKbps ?? 0));
 
       const topItems = [
         `分组 ${reg.groupName || "默认"}`,
