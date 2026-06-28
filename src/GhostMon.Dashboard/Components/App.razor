@@ -6,7 +6,7 @@
     <base href="/" />
     <link rel="stylesheet" href="_content/MudBlazor/MudBlazor.min.css" />
     <link rel="stylesheet" href="@Assets["app.css"]" />
-    <HeadOutlet />
+    <HeadOutlet @rendermode="new InteractiveServerRenderMode()" />
 </head>
 <body>
     <Routes />
