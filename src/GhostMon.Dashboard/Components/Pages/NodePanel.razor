@@ -1,85 +1,111 @@
 @using MudBlazor
 
-<MudExpansionPanel Dense="true"
+<MudExpansionPanel Class="node-panel"
+                   Dense="true"
                    Expanded="@IsOpen"
                    ExpandedChanged="@OnExpandedChanged">
     <TitleContent>
-        <div class="node-summary">
-            <div class="node-summary-main">
-                <MudStack Spacing="1">
-                    <MudText Typo="Typo.subtitle1">@NodeName(Node)</MudText>
-                    <MudText Typo="Typo.caption" Class="dashboard-muted">
-                        @NodeGroup(Node) · @NodeIdentity(Node) · Last report @FormatTime(Node.Registration.LastSeenUtc)
+        @{
+            var health = AssessNode(Node);
+            var runtime = CurrentRuntime(Node);
+        }
+        <div class="node-title-row">
+            <div class="node-title">
+                <MudStack Spacing="0">
+                    <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="1" Class="node-title-line">
+                        <MudText Typo="Typo.subtitle1">@NodeName(Node)</MudText>
+                        <MudChip T="string" Color="@HealthChipColor(health)" Variant="Variant.Filled" Size="Size.Small">
+                            @HealthLabel(health)
+                        </MudChip>
+                    </MudStack>
+                    <MudText Typo="Typo.caption" Class="dashboard-muted node-meta">
+                        @NodeGroup(Node) 路 @NodeIdentity(Node) 路 Last report @FormatTime(Node.Registration.LastSeenUtc)
                     </MudText>
                 </MudStack>
             </div>
-            <div class="node-summary-side">
-                <MudChip T="string" Color="@HealthChipColor(AssessNode(Node))" Variant="Variant.Filled" Size="Size.Small">
-                    @HealthLabel(AssessNode(Node))
-                </MudChip>
-                <MudText Typo="Typo.caption" Class="dashboard-muted">
-                    CPU @FormatPercent(CurrentRuntime(Node).CpuUsedPercent)
-                </MudText>
+
+            <div class="node-mini-metrics">
+                <div class="node-mini-metric">
+                    <span>CPU</span>
+                    <strong>@FormatPercent(runtime.CpuUsedPercent)</strong>
+                </div>
+                <div class="node-mini-metric">
+                    <span>Memory</span>
+                    <strong>@FormatPercent(runtime.MemoryUsedPercent)</strong>
+                </div>
+                <div class="node-mini-metric">
+                    <span>Disk</span>
+                    <strong>@FormatPercent(runtime.DiskUsedPercent)</strong>
+                </div>
             </div>
         </div>
     </TitleContent>
     <ChildContent>
+        @{
+            var runtime = CurrentRuntime(Node);
+            var nodeId = NodeIdentity(Node);
+        }
         <MudStack Spacing="2" Class="node-detail">
-            <MudGrid Spacing="2">
+            <MudGrid Spacing="2" Class="node-metric-grid">
                 <MudItem xs="12" sm="6" md="3">
-                    <MudPaper Class="stat-tile" Outlined="true">
+                    <MudPaper Class="stat-tile stat-tile-compact" Outlined="true">
                         <MudText Typo="Typo.caption" Class="dashboard-muted">CPU</MudText>
-                        <MudText Typo="Typo.h6">@FormatPercent(CurrentRuntime(Node).CpuUsedPercent)</MudText>
+                        <MudText Typo="Typo.h6">@FormatPercent(runtime.CpuUsedPercent)</MudText>
                     </MudPaper>
                 </MudItem>
                 <MudItem xs="12" sm="6" md="3">
-                    <MudPaper Class="stat-tile" Outlined="true">
+                    <MudPaper Class="stat-tile stat-tile-compact" Outlined="true">
                         <MudText Typo="Typo.caption" Class="dashboard-muted">Memory</MudText>
-                        <MudText Typo="Typo.h6">@FormatPercent(CurrentRuntime(Node).MemoryUsedPercent)</MudText>
+                        <MudText Typo="Typo.h6">@FormatPercent(runtime.MemoryUsedPercent)</MudText>
                     </MudPaper>
                 </MudItem>
                 <MudItem xs="12" sm="6" md="3">
-                    <MudPaper Class="stat-tile" Outlined="true">
+                    <MudPaper Class="stat-tile stat-tile-compact" Outlined="true">
                         <MudText Typo="Typo.caption" Class="dashboard-muted">Swap</MudText>
-                        <MudText Typo="Typo.h6">@FormatPercent(CurrentRuntime(Node).SwapUsedPercent)</MudText>
+                        <MudText Typo="Typo.h6">@FormatPercent(runtime.SwapUsedPercent)</MudText>
                     </MudPaper>
                 </MudItem>
                 <MudItem xs="12" sm="6" md="3">
-                    <MudPaper Class="stat-tile" Outlined="true">
+                    <MudPaper Class="stat-tile stat-tile-compact" Outlined="true">
                         <MudText Typo="Typo.caption" Class="dashboard-muted">Disk</MudText>
-                        <MudText Typo="Typo.h6">@FormatPercent(CurrentRuntime(Node).DiskUsedPercent)</MudText>
+                        <MudText Typo="Typo.h6">@FormatPercent(runtime.DiskUsedPercent)</MudText>
                     </MudPaper>
                 </MudItem>
             </MudGrid>
 
-            @if (NodeDetails.TryGetValue(NodeIdentity(Node), out var detail))
+            @if (NodeDetails.TryGetValue(nodeId, out var detail))
             {
                 <MudDivider />
 
                 <MudStack Spacing="2">
-                    <MudStack Spacing="0">
-                        <MudText Typo="Typo.subtitle2">@NodeLabel(Node)</MudText>
-                        <MudText Typo="Typo.caption" Class="dashboard-muted">
-                            History points @detail.History.Length · History is loaded on demand
-                        </MudText>
-                    </MudStack>
+                    <div class="history-head">
+                        <div>
+                            <MudText Typo="Typo.subtitle2">@NodeLabel(Node)</MudText>
+                            <MudText Typo="Typo.caption" Class="dashboard-muted">
+                                History points @detail.History.Length 路 loaded on demand
+                            </MudText>
+                        </div>
+                        <MudChip T="string" Variant="Variant.Outlined" Size="Size.Small" Class="history-chip">
+                            24h trend
+                        </MudChip>
+                    </div>
 
                     <MudPaper Class="sparkline-card" Outlined="true">
                         <svg class="sparkline" viewBox="0 0 160 56" preserveAspectRatio="none" aria-hidden="true">
                             <polyline points="@BuildSparkline(detail.History)"></polyline>
                         </svg>
-                        <MudText Typo="Typo.caption" Class="dashboard-muted">Rx + Tx 24h trend</MudText>
+                        <MudText Typo="Typo.caption" Class="dashboard-muted">Rx + Tx trend</MudText>
                     </MudPaper>
                 </MudStack>
             }
-            else if (LoadingDetails.Contains(NodeIdentity(Node)))
+            else if (LoadingDetails.Contains(nodeId))
             {
                 <MudProgressLinear Indeterminate="true" Color="Color.Primary" />
                 <MudText Typo="Typo.body2" Class="dashboard-muted">Loading node history on demand...</MudText>
             }
             else
             {
-                <MudAlert Severity="Severity.Info" Variant="Variant.Outlined">
+                <MudAlert Severity="Severity.Info" Variant="Variant.Outlined" Class="node-hint">
                     Expand the node to request its history. The list view does not prefetch the full 24h payload.
                 </MudAlert>
             }

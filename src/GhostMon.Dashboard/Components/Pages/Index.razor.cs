@@ -65,6 +65,11 @@ public partial class Index : ComponentBase
 
     protected bool CollapseAll { get; private set; }
     protected bool SnapshotLoading { get; private set; }
+    protected int TotalNodeCount { get; private set; }
+    protected int VisibleNodeCount { get; private set; }
+    protected int HealthyNodeCount { get; private set; }
+    protected int WarningNodeCount { get; private set; }
+    protected int DegradedNodeCount { get; private set; }
     protected string ClusterValue { get; private set; } = "N/A";
     protected string ClusterDetail { get; private set; } = "Waiting for the first snapshot.";
     protected string HealthValue { get; private set; } = "Unknown";
@@ -73,6 +78,7 @@ public partial class Index : ComponentBase
     protected string TrafficValue { get; private set; } = "0 kbps";
     protected string TrafficDetail { get; private set; } = "Rx 0 kbps / Tx 0 kbps";
     protected string FilterSummary { get; private set; } = "No filter is active.";
+    protected string SnapshotSummary { get; private set; } = "Waiting for telemetry.";
     protected string AgentInstallStatus { get; private set; } = "Waiting to generate install command.";
     protected string InstallCommand { get; private set; } = "Loading...";
     protected string ToggleGroupsText { get; private set; } = "Collapse all";
@@ -372,13 +378,21 @@ public partial class Index : ComponentBase
 
     private void RecomputeDerivedState()
     {
+        TotalNodeCount = Snapshot?.Nodes.Length ?? 0;
         var visibleNodes = GetVisibleNodes();
+        VisibleNodeCount = visibleNodes.Count;
+        HealthyNodeCount = visibleNodes.Count(node => AssessNode(node) == HealthFilterHealthy);
+        WarningNodeCount = visibleNodes.Count(node => AssessNode(node) == HealthFilterWarning);
+        DegradedNodeCount = visibleNodes.Count(node => AssessNode(node) == HealthFilterDegraded);
         var summary = SummarizeHealth(visibleNodes);
         ClusterValue = summary.Label;
         ClusterDetail = summary.Detail;
         HealthValue = summary.Label;
         HealthDetail = summary.Detail;
         HealthColor = summary.Color;
+        SnapshotSummary = Snapshot is null
+            ? "Waiting for the first snapshot."
+            : $"Last broadcast {FormatTime(Snapshot.BroadcastedAtUtc)}";
 
         var totalRx = 0d;
         var totalTx = 0d;

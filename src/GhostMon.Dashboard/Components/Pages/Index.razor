@@ -5,29 +5,133 @@
 
 <MudContainer MaxWidth="MaxWidth.False" Class="dashboard-page">
     <MudStack Spacing="3">
-        <DashboardHero Tag="Dashboard"
-                       Title="GhostMon Dashboard"
-                       Subtitle="List view only loads node snapshots. Expand a node to fetch its history on demand."
-                       RefreshText="Refresh snapshot"
-                       RefreshDisabled="SnapshotLoading"
-                       OnRefresh="@LoadSnapshotAsync"
-                       CopyText="Copy install command"
-                       OnCopy="@CopyInstallCommandAsync"
-                       Status="@AgentInstallStatus"
-                       Command="@InstallCommand" />
+        <MudPaper Class="hero-panel" Elevation="0">
+            <div class="hero-orb hero-orb-a"></div>
+            <div class="hero-orb hero-orb-b"></div>
+            <MudStack Spacing="3">
+                <MudStack Spacing="2" Class="hero-grid">
+                    <MudStack Spacing="1" Class="hero-copy">
+                        <MudStack Row="true" Spacing="1" Class="hero-kicker">
+                            <MudChip T="string" Color="Color.Info" Variant="Variant.Filled" Size="Size.Small">Live</MudChip>
+                            <MudChip T="string" Color="Color.Primary" Variant="Variant.Outlined" Size="Size.Small">Snapshot-first</MudChip>
+                            <MudChip T="string" Color="Color.Success" Variant="Variant.Outlined" Size="Size.Small">History on demand</MudChip>
+                        </MudStack>
+                        <MudText Typo="Typo.h2" Class="hero-title">GhostMon Dashboard</MudText>
+                        <MudText Typo="Typo.body1" Class="dashboard-muted hero-subtitle">
+                            Fast snapshot list on the left, on-demand history on the node card. The page stays light until you expand a node.
+                        </MudText>
 
-        <DashboardMetrics ClusterLabel="Cluster"
-                          ClusterValue="@ClusterValue"
-                          ClusterDetail="@ClusterDetail"
-                          TrafficLabel="Traffic"
-                          TrafficValue="@TrafficValue"
-                          TrafficDetail="@TrafficDetail"
-                          HealthLabel="Health"
-                          HealthValue="@HealthValue"
-                          HealthDetail="@HealthDetail"
-                          ToneColor="@HealthColor" />
+                        <MudStack Row="true" Spacing="1" Class="hero-actions">
+                            <MudButton Variant="Variant.Filled"
+                                       Color="Color.Primary"
+                                       StartIcon="@Icons.Material.Filled.Refresh"
+                                       Disabled="@SnapshotLoading"
+                                       OnClick="@LoadSnapshotAsync">
+                                Refresh snapshot
+                            </MudButton>
+                            <MudButton Variant="Variant.Outlined"
+                                       Color="Color.Primary"
+                                       StartIcon="@Icons.Material.Filled.ContentCopy"
+                                       OnClick="@CopyInstallCommandAsync">
+                                Copy install command
+                            </MudButton>
+                        </MudStack>
 
-        <DashboardFilters Title="Filters"
+                        <MudGrid Spacing="1" Class="hero-stats">
+                            <MudItem xs="12" sm="4">
+                                <MudPaper Class="hero-stat" Outlined="true">
+                                    <MudText Typo="Typo.caption" Class="dashboard-muted">Visible nodes</MudText>
+                                    <MudText Typo="Typo.h5">@VisibleNodeCount / @TotalNodeCount</MudText>
+                                </MudPaper>
+                            </MudItem>
+                            <MudItem xs="12" sm="4">
+                                <MudPaper Class="hero-stat" Outlined="true">
+                                    <MudText Typo="Typo.caption" Class="dashboard-muted">Traffic</MudText>
+                                    <MudText Typo="Typo.h5">@TrafficValue</MudText>
+                                </MudPaper>
+                            </MudItem>
+                            <MudItem xs="12" sm="4">
+                                <MudPaper Class="hero-stat" Outlined="true">
+                                    <MudText Typo="Typo.caption" Class="dashboard-muted">Broadcast</MudText>
+                                    <MudText Typo="Typo.h6">@SnapshotSummary</MudText>
+                                </MudPaper>
+                            </MudItem>
+                        </MudGrid>
+                    </MudStack>
+
+                    <MudPaper Class="hero-side" Elevation="0">
+                        <MudStack Spacing="2">
+                            <MudText Typo="Typo.overline" Class="dashboard-muted">Snapshot status</MudText>
+                            <MudText Typo="Typo.h5">@ClusterValue</MudText>
+                            <MudText Typo="Typo.body2" Class="dashboard-muted">@ClusterDetail</MudText>
+
+                            <MudDivider />
+
+                            <MudStack Spacing="1">
+                                <MudStack Row="true" Justify="Justify.SpaceBetween">
+                                    <MudText Typo="Typo.body2" Class="dashboard-muted">Nodes</MudText>
+                                    <MudText Typo="Typo.body2">@VisibleNodeCount / @TotalNodeCount</MudText>
+                                </MudStack>
+                                <MudStack Row="true" Justify="Justify.SpaceBetween">
+                                    <MudText Typo="Typo.body2" Class="dashboard-muted">Healthy</MudText>
+                                    <MudText Typo="Typo.body2" Color="Color.Success">@HealthyNodeCount</MudText>
+                                </MudStack>
+                                <MudStack Row="true" Justify="Justify.SpaceBetween">
+                                    <MudText Typo="Typo.body2" Class="dashboard-muted">Warning</MudText>
+                                    <MudText Typo="Typo.body2" Color="Color.Warning">@WarningNodeCount</MudText>
+                                </MudStack>
+                                <MudStack Row="true" Justify="Justify.SpaceBetween">
+                                    <MudText Typo="Typo.body2" Class="dashboard-muted">Degraded</MudText>
+                                    <MudText Typo="Typo.body2" Color="Color.Error">@DegradedNodeCount</MudText>
+                                </MudStack>
+                            </MudStack>
+
+                            <MudDivider />
+
+                            <MudStack Spacing="1">
+                                <MudText Typo="Typo.caption" Class="dashboard-muted">Runtime posture</MudText>
+                                <MudText Typo="Typo.body2">@AgentInstallStatus</MudText>
+                                <MudText Typo="Typo.caption" Class="dashboard-muted hero-side-foot">
+                                    Compose image @RuntimeSettings.AgentImage
+                                </MudText>
+                            </MudStack>
+                        </MudStack>
+                    </MudPaper>
+                </MudStack>
+
+                <MudGrid Spacing="2">
+                    <MudItem xs="12" md="4">
+                        <MudCard Class="metric-card metric-accent">
+                            <MudCardContent>
+                                <MudText Typo="Typo.overline" Class="dashboard-muted">Cluster</MudText>
+                                <MudText Typo="Typo.h4" Color="@HealthColor">@HealthValue</MudText>
+                                <MudText Typo="Typo.body2" Class="dashboard-muted">@HealthDetail</MudText>
+                            </MudCardContent>
+                        </MudCard>
+                    </MudItem>
+                    <MudItem xs="12" md="4">
+                        <MudCard Class="metric-card">
+                            <MudCardContent>
+                                <MudText Typo="Typo.overline" Class="dashboard-muted">Traffic</MudText>
+                                <MudText Typo="Typo.h4">@TrafficValue</MudText>
+                                <MudText Typo="Typo.body2" Class="dashboard-muted">@TrafficDetail</MudText>
+                            </MudCardContent>
+                        </MudCard>
+                    </MudItem>
+                    <MudItem xs="12" md="4">
+                        <MudCard Class="metric-card">
+                            <MudCardContent>
+                                <MudText Typo="Typo.overline" Class="dashboard-muted">Snapshot</MudText>
+                                <MudText Typo="Typo.h4">@VisibleNodeCount</MudText>
+                                <MudText Typo="Typo.body2" Class="dashboard-muted">@SnapshotSummary</MudText>
+                            </MudCardContent>
+                        </MudCard>
+                    </MudItem>
+                </MudGrid>
+            </MudStack>
+        </MudPaper>
+
+        <DashboardFilters Title="Filter and scope"
                           Summary="@FilterSummary"
                           Search="@Search"
                           SearchChanged="@OnSearchChanged"
@@ -38,23 +142,39 @@
                           RefreshText="Reload snapshot"
                           OnRefresh="@LoadSnapshotAsync" />
 
-        <NodeBrowser Groups="@VisibleGroups"
-                     IsGroupOpen="@IsGroupOpen"
-                     IsNodeOpen="@IsNodeOpen"
-                     GroupExpandedChanged="@OnGroupExpandedChanged"
-                     NodeExpandedChanged="@OnNodeExpandedChanged"
-                     AssessNode="@AssessNode"
-                     HealthLabel="@HealthLabel"
-                     HealthChipColor="@HealthChipColor"
-                     NodeName="@NodeName"
-                     NodeGroup="@NodeGroup"
-                     NodeIdentity="@NodeIdentity"
-                     NodeLabel="@NodeLabel"
-                     FormatTime="@FormatTime"
-                     FormatPercent="@FormatPercent"
-                     CurrentRuntime="@CurrentRuntime"
-                     BuildSparkline="@BuildSparkline"
-                     NodeDetails="@NodeDetails"
-                     LoadingDetails="@LoadingDetails" />
+        <MudPaper Class="nodes-stage" Elevation="0">
+            <MudStack Spacing="2">
+                <MudStack Row="true" Justify="Justify.SpaceBetween" AlignItems="AlignItems.Center" Class="nodes-stage-head">
+                    <MudStack Spacing="0">
+                        <MudText Typo="Typo.h5">Nodes</MudText>
+                        <MudText Typo="Typo.body2" Class="dashboard-muted">
+                            Expand a node to fetch history. The list stays snapshot-only.
+                        </MudText>
+                    </MudStack>
+                    <MudChip T="string" Color="Color.Primary" Variant="Variant.Outlined" Size="Size.Small">
+                        @VisibleNodeCount visible
+                    </MudChip>
+                </MudStack>
+
+                <NodeBrowser Groups="@VisibleGroups"
+                             IsGroupOpen="@IsGroupOpen"
+                             IsNodeOpen="@IsNodeOpen"
+                             GroupExpandedChanged="@OnGroupExpandedChanged"
+                             NodeExpandedChanged="@OnNodeExpandedChanged"
+                             AssessNode="@AssessNode"
+                             HealthLabel="@HealthLabel"
+                             HealthChipColor="@HealthChipColor"
+                             NodeName="@NodeName"
+                             NodeGroup="@NodeGroup"
+                             NodeIdentity="@NodeIdentity"
+                             NodeLabel="@NodeLabel"
+                             FormatTime="@FormatTime"
+                             FormatPercent="@FormatPercent"
+                             CurrentRuntime="@CurrentRuntime"
+                             BuildSparkline="@BuildSparkline"
+                             NodeDetails="@NodeDetails"
+                             LoadingDetails="@LoadingDetails" />
+            </MudStack>
+        </MudPaper>
     </MudStack>
 </MudContainer>
