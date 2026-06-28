@@ -5,7 +5,6 @@ using MudBlazor;
 
 namespace GhostMon.Dashboard.Components.Pages;
 
-[Route("/")]
 public partial class Index : ComponentBase
 {
     protected const string HealthFilterAll = "all";

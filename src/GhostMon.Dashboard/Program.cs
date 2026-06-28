@@ -42,20 +42,6 @@ app.MapStaticAssets();
 app.MapRazorComponents<App>()
     .AddInteractiveServerRenderMode();
 
-app.MapGet("/", () => Results.Content("""
-<!DOCTYPE html>
-<html lang="zh-CN">
-<head>
-    <meta charset="utf-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>GhostMon Dashboard</title>
-</head>
-<body>
-    <div id="app">GhostMon Dashboard</div>
-</body>
-</html>
-""", "text/html"));
-
 app.MapGet(DashboardConstants.SnapshotPath, DashboardEndpoints.MapSnapshotForTests);
 app.MapGet(DashboardConstants.NodeDetailPath, DashboardEndpoints.GetNodeDetailForTests);
 app.MapGet(DashboardConstants.AgentConfigPath, DashboardEndpoints.GetAgentConfigForTests);

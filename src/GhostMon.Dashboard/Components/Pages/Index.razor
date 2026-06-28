@@ -1,3 +1,59 @@
+@page "/"
+
 <PageTitle>GhostMon Dashboard</PageTitle>
 
-<MudText Typo="Typo.h4">GhostMon Dashboard</MudText>
+<MudContainer MaxWidth="MaxWidth.False" Class="dashboard-page">
+    <MudStack Spacing="3">
+        <DashboardHero Tag="Dashboard"
+                       Title="GhostMon Dashboard"
+                       Subtitle="List view only loads node snapshots. Expand a node to fetch its history on demand."
+                       RefreshText="Refresh snapshot"
+                       RefreshDisabled="SnapshotLoading"
+                       OnRefresh="@LoadSnapshotAsync"
+                       CopyText="Copy install command"
+                       OnCopy="@CopyInstallCommandAsync"
+                       Status="@AgentInstallStatus"
+                       Command="@InstallCommand" />
+
+        <DashboardMetrics ClusterLabel="Cluster"
+                          ClusterValue="@ClusterValue"
+                          ClusterDetail="@ClusterDetail"
+                          TrafficLabel="Traffic"
+                          TrafficValue="@TrafficValue"
+                          TrafficDetail="@TrafficDetail"
+                          HealthLabel="Health"
+                          HealthValue="@HealthValue"
+                          HealthDetail="@HealthDetail"
+                          ToneColor="@HealthColor" />
+
+        <DashboardFilters Title="Filters"
+                          Summary="@FilterSummary"
+                          Search="@Search"
+                          SearchChanged="@OnSearchChanged"
+                          Placeholder="Search by name, group, IP, or port"
+                          FilterOptions="@FilterOptions"
+                          ToggleText="@ToggleGroupsText"
+                          OnToggleCollapse="@ToggleCollapseAll"
+                          RefreshText="Reload snapshot"
+                          OnRefresh="@LoadSnapshotAsync" />
+
+        <NodeBrowser Groups="@VisibleGroups"
+                     IsGroupOpen="@IsGroupOpen"
+                     IsNodeOpen="@IsNodeOpen"
+                     GroupExpandedChanged="@OnGroupExpandedChanged"
+                     NodeExpandedChanged="@OnNodeExpandedChanged"
+                     AssessNode="@AssessNode"
+                     HealthLabel="@HealthLabel"
+                     HealthChipColor="@HealthChipColor"
+                     NodeName="@NodeName"
+                     NodeGroup="@NodeGroup"
+                     NodeIdentity="@NodeIdentity"
+                     NodeLabel="@NodeLabel"
+                     FormatTime="@FormatTime"
+                     FormatPercent="@FormatPercent"
+                     CurrentRuntime="@CurrentRuntime"
+                     BuildSparkline="@BuildSparkline"
+                     NodeDetails="@NodeDetails"
+                     LoadingDetails="@LoadingDetails" />
+    </MudStack>
+</MudContainer>
