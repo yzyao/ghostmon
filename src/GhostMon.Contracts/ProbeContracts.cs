@@ -153,6 +153,13 @@ public sealed record class NodeBroadcastSnapshot
     public NodeRegistryRecord Registration { get; init; } = new();
 
     public ProbeMetrics CurrentMetrics { get; init; } = new();
+}
+
+public sealed record class NodeDetailSnapshot
+{
+    public NodeRegistryRecord Registration { get; init; } = new();
+
+    public ProbeMetrics CurrentMetrics { get; init; } = new();
 
     public HistoricalSnapshot[] History { get; init; } = Array.Empty<HistoricalSnapshot>();
 }

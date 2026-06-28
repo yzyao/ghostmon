@@ -509,6 +509,31 @@
       border-top: 1px solid rgba(255, 255, 255, 0.05);
     }
 
+    .node-detail-head {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      justify-content: space-between;
+      gap: 8px;
+      padding-top: 2px;
+    }
+
+    .node-detail-status {
+      color: var(--muted);
+      font-size: 12px;
+      line-height: 1.4;
+    }
+
+    .node-detail-note {
+      padding: 10px 12px;
+      border-radius: 12px;
+      border: 1px dashed rgba(255, 255, 255, 0.12);
+      background: rgba(0, 0, 0, 0.12);
+      color: var(--muted);
+      font-size: 12px;
+      line-height: 1.5;
+    }
+
     .stat-list {
       display: grid;
       gap: 8px;
@@ -649,6 +674,7 @@
         <div class="badge">HTTP 轮询: <span id="connState">轮询中</span></div>
         <div class="badge">节点数: <span id="nodeCount">0</span></div>
         <div class="badge">可见: <span id="visibleCount">0</span></div>
+        <div class="badge">更新: <span id="lastUpdate">-</span></div>
       </div>
     </header>
 
@@ -731,7 +757,7 @@
       <article class="card span-12" id="nodesCard">
         <div class="card-head">
           <h2 class="card-title">节点</h2>
-          <div class="mono muted">按分组展示 24 小时历史曲线</div>
+          <div class="mono muted">列表只显示当前摘要，展开后按需加载历史</div>
         </div>
         <div class="card-body">
           <div class="nodes" id="nodes"></div>
@@ -743,6 +769,7 @@
   <script>
     const state = {
       snapshot: null,
+      nodeDetails: new Map(),
       installConfig: null,
       installCommand: "",
       lastSnapshotJson: "",
@@ -751,6 +778,8 @@
       search: "",
       healthFilter: "all",
       forceCollapseAll: false,
+      nodeOpen: new Map(),
+      pendingDetailRequests: new Set(),
       groupOpen: new Map()
     };
 
@@ -768,6 +797,19 @@
 
       state.lastSnapshotJson = json;
       state.snapshot = snapshot;
+    }
+
+    function nodeIdentityFromRecord(record) {
+      return `${record?.remoteIp || ""}:${record?.metricsPort || 0}`;
+    }
+
+    function nodeIdentity(node) {
+      return nodeIdentityFromRecord(node?.registration || {});
+    }
+
+    function nodeLabel(node) {
+      const reg = node?.registration || {};
+      return `${reg.nodeName || "未命名节点"} · ${reg.groupName || "默认"} · ${reg.remoteIp || "-"}:${reg.metricsPort || 0}`;
     }
 
     function fmtPercent(value) {
@@ -996,11 +1038,74 @@
       `;
     }
 
-    function historyBlock(label, value) {
+    function getNodeDetail(node) {
+      return state.nodeDetails.get(nodeIdentity(node)) || null;
+    }
+
+    function setNodeDetail(node, detail) {
+      state.nodeDetails.set(nodeIdentity(node), detail);
+    }
+
+    function isDetailLoading(node) {
+      return state.pendingDetailRequests.has(nodeIdentity(node));
+    }
+
+    function isNodeOpen(node) {
+      return state.nodeOpen.has(nodeIdentity(node)) ? state.nodeOpen.get(nodeIdentity(node)) : false;
+    }
+
+    function renderNodeDetail(node) {
+      const detail = getNodeDetail(node);
+      const reg = node.registration || {};
+      const metrics = (detail && detail.currentMetrics) || node.currentMetrics || {};
+      const assets = metrics.assets || reg.assets || {};
+      const runtime = metrics.runtime || {};
+      const sanity = metrics.sanity || {};
+      const history = Array.isArray(detail?.history) ? detail.history : [];
+      const netHistory = sampleHistoryValues(history, (entry) => (entry?.runtime?.netRxSpeedKbps ?? 0) + (entry?.runtime?.netTxSpeedKbps ?? 0));
+
+      if (!detail) {
+        if (isDetailLoading(node)) {
+          return `
+            <div class="node-detail-note">历史数据加载中，展开后会按需请求该节点的 24 小时历史。</div>
+          `;
+        }
+
+        return `
+          <div class="node-detail-note">展开该节点即可加载历史曲线与详情信息，列表页不会预先下载全量历史。</div>
+        `;
+      }
+
       return `
-        <div class="history-item">
-          <div class="h-label">${escapeHtml(label)}</div>
-          <div class="h-value">${escapeHtml(String(value))}</div>
+        <div class="node-detail-head">
+          <div class="node-detail-status">${escapeHtml(nodeLabel(node))}</div>
+          <div class="mono muted">历史点数 ${history.length}</div>
+        </div>
+        <div class="stat-list">
+          ${statRow("CPU", fmtPercent(runtime.cpuUsedPercent || 0), runtime.cpuUsedPercent || 0)}
+          ${statRow("内存", fmtPercent(runtime.memoryUsedPercent || 0), runtime.memoryUsedPercent || 0)}
+          ${statRow("交换分区", fmtPercent(runtime.swapUsedPercent || 0), runtime.swapUsedPercent || 0)}
+          ${statRow("磁盘", fmtPercent(runtime.diskUsedPercent || 0), runtime.diskUsedPercent || 0)}
+        </div>
+
+        <div class="sparkline-card">
+          <div>
+            <div class="sparkline-title">网络 24 小时历史</div>
+            ${buildSparklineSvg(netHistory)}
+          </div>
+          <div class="mono muted">收 + 发</div>
+        </div>
+
+        <div class="history-grid">
+          ${historyBlock("型号", assets.cpuModelName || "暂无")}
+          ${historyBlock("系统", assets.osPlatform || "暂无")}
+          ${historyBlock("磁盘只读", sanity.diskReadOnlyPanic ? "是" : "否")}
+          ${historyBlock("接收", fmtBytes(runtime.bootTotalRxBytes || 0))}
+          ${historyBlock("发送", fmtBytes(runtime.bootTotalTxBytes || 0))}
+          ${historyBlock("IPv4 延迟", runtime.pingV4DelayMs ?? "暂无")}
+          ${historyBlock("IPv6 延迟", runtime.pingV6DelayMs ?? "暂无")}
+          ${historyBlock("磁盘读速", fmtBytes(runtime.diskReadBytesPerSec || 0))}
+          ${historyBlock("磁盘写速", fmtBytes(runtime.diskWriteBytesPerSec || 0))}
         </div>
       `;
     }
@@ -1024,19 +1129,26 @@
       `;
     }
 
+    function historyBlock(label, value) {
+      return `
+        <div class="history-item">
+          <div class="h-label">${escapeHtml(label)}</div>
+          <div class="h-value">${escapeHtml(String(value))}</div>
+        </div>
+      `;
+    }
+
     function renderNode(node) {
       const reg = node.registration || {};
       const metrics = node.currentMetrics || {};
-      const assets = metrics.assets || reg.assets || {};
       const runtime = metrics.runtime || {};
-      const sanity = metrics.sanity || {};
-      const history = Array.isArray(node.history) ? node.history : [];
       const health = assessNode(node);
+      const nodeId = nodeIdentity(node);
+      const detail = getNodeDetail(node);
+      const loading = isDetailLoading(node);
       const cpu = Number(runtime.cpuUsedPercent || 0);
       const mem = Number(runtime.memoryUsedPercent || 0);
-      const swap = Number(runtime.swapUsedPercent || 0);
-      const disk = Number(runtime.diskUsedPercent || 0);
-      const netHistory = sampleHistoryValues(history, (entry) => (entry?.runtime?.netRxSpeedKbps ?? 0) + (entry?.runtime?.netTxSpeedKbps ?? 0));
+      const netTotal = Number(runtime.netRxSpeedKbps || 0) + Number(runtime.netTxSpeedKbps || 0);
 
       const topItems = [
         `分组 ${reg.groupName || "默认"}`,
@@ -1045,7 +1157,7 @@
       ];
 
       return `
-        <details class="node ${health}" ${state.forceCollapseAll ? "" : "open"}>
+        <details class="node ${health}" data-node-id="${escapeHtml(nodeId)}" ${isNodeOpen(node) ? "open" : ""}>
           <summary class="node-summary">
             <div class="node-main">
               <div class="node-topline">
@@ -1060,7 +1172,7 @@
               <div class="node-stats">
                 ${miniStat("CPU", fmtPercent(cpu))}
                 ${miniStat("MEM", fmtPercent(mem))}
-                ${miniStat("NET", `${fmtNumber(runtime.netRxSpeedKbps + runtime.netTxSpeedKbps, 1)} kbps`)}
+                ${miniStat("NET", `${fmtNumber(netTotal, 1)} kbps`)}
               </div>
               <div class="node-indicator">
                 <span class="node-health-pill ${healthClass(health)}">${healthLabel(health)}</span>
@@ -1070,32 +1182,11 @@
           </summary>
 
           <div class="node-expand">
-            <div class="stat-list">
-              ${statRow("CPU", fmtPercent(cpu), cpu)}
-              ${statRow("内存", fmtPercent(mem), mem)}
-              ${statRow("交换分区", fmtPercent(swap), swap)}
-              ${statRow("磁盘", fmtPercent(disk), disk)}
+            <div class="node-detail-head">
+              <div class="node-detail-status">${escapeHtml(nodeLabel(node))}</div>
+              <div class="mono muted">${loading ? "加载中" : detail ? "已加载" : "未加载"}</div>
             </div>
-
-            <div class="sparkline-card">
-              <div>
-                <div class="sparkline-title">网络 24 小时历史</div>
-                ${buildSparklineSvg(netHistory)}
-              </div>
-              <div class="mono muted">收 + 发</div>
-            </div>
-
-            <div class="history-grid">
-              ${historyBlock("型号", assets.cpuModelName || "暂无")}
-              ${historyBlock("系统", assets.osPlatform || "暂无")}
-              ${historyBlock("磁盘只读", sanity.diskReadOnlyPanic ? "是" : "否")}
-              ${historyBlock("接收", fmtBytes(runtime.bootTotalRxBytes || 0))}
-              ${historyBlock("发送", fmtBytes(runtime.bootTotalTxBytes || 0))}
-              ${historyBlock("IPv4 延迟", runtime.pingV4DelayMs ?? "暂无")}
-              ${historyBlock("IPv6 延迟", runtime.pingV6DelayMs ?? "暂无")}
-              ${historyBlock("磁盘读速", fmtBytes(runtime.diskReadBytesPerSec || 0))}
-              ${historyBlock("磁盘写速", fmtBytes(runtime.diskWriteBytesPerSec || 0))}
-            </div>
+            ${renderNodeDetail(node)}
           </div>
         </details>
       `;
@@ -1184,6 +1275,62 @@
       el("filterSummary").textContent = activeFilters.length ? activeFilters.join(" · ") : "暂无筛选条件。";
     }
 
+    function syncDetailCache(snapshot) {
+      const visibleIds = new Set();
+      for (const node of snapshot?.nodes || []) {
+        visibleIds.add(nodeIdentity(node));
+      }
+
+      for (const key of state.nodeDetails.keys()) {
+        if (!visibleIds.has(key)) {
+          state.nodeDetails.delete(key);
+        }
+      }
+
+      for (const key of state.pendingDetailRequests) {
+        if (!visibleIds.has(key)) {
+          state.pendingDetailRequests.delete(key);
+        }
+      }
+
+      for (const key of state.nodeOpen.keys()) {
+        if (!visibleIds.has(key)) {
+          state.nodeOpen.delete(key);
+        }
+      }
+    }
+
+    async function fetchNodeDetail(node) {
+      const reg = node?.registration || {};
+      const remoteIp = reg.remoteIp || "";
+      const metricsPort = reg.metricsPort || 0;
+      const nodeId = nodeIdentity(node);
+
+      if (!remoteIp || !metricsPort || state.pendingDetailRequests.has(nodeId)) {
+        return;
+      }
+
+      state.pendingDetailRequests.add(nodeId);
+      render();
+
+      try {
+        const params = new URLSearchParams({ remoteIp, metricsPort: String(metricsPort) });
+        const response = await fetch(`/api/node-detail?${params.toString()}`, { cache: "no-store" });
+        if (!response.ok) {
+          state.nodeDetails.delete(nodeId);
+          return;
+        }
+
+        const detail = await response.json();
+        setNodeDetail(node, detail);
+      } catch (err) {
+        console.error(err);
+      } finally {
+        state.pendingDetailRequests.delete(nodeId);
+        render();
+      }
+    }
+
     function render(snapshot) {
       applySnapshot(snapshot);
 
@@ -1193,12 +1340,15 @@
         return;
       }
 
+      syncDetailCache(snapshot);
       const visibleNodes = getVisibleNodes();
       const renderKey = JSON.stringify({
         stamp: snapshot.broadcastedAtUtc || "",
         search: state.search,
         health: state.healthFilter,
-        collapse: state.forceCollapseAll
+        collapse: state.forceCollapseAll,
+        details: [...state.nodeDetails.keys()].sort(),
+        pending: [...state.pendingDetailRequests.keys()].sort()
       });
 
       if (renderKey === state.lastRenderKey) {
@@ -1206,11 +1356,11 @@
       }
 
       state.lastRenderKey = renderKey;
+      el("lastUpdate").textContent = formatTime(snapshot.broadcastedAtUtc);
 
       const summary = summarizeHealth(visibleNodes);
       const totalNodes = Array.isArray(snapshot.nodes) ? snapshot.nodes.length : 0;
 
-      el("lastUpdate").textContent = formatTime(snapshot.broadcastedAtUtc);
       el("clusterValue").textContent = summary.label;
       el("clusterValue").className = `value ${summary.tone}`;
       el("clusterDetail").textContent = summary.detail;
@@ -1283,6 +1433,15 @@
         el("connState").textContent = "离线";
         console.error(err);
       }
+    }
+
+    async function ensureNodeDetailLoaded(node) {
+      const nodeId = nodeIdentity(node);
+      if (state.nodeDetails.has(nodeId) || state.pendingDetailRequests.has(nodeId)) {
+        return;
+      }
+
+      await fetchNodeDetail(node);
     }
 
     async function fetchAgentInstallConfig() {
@@ -1360,12 +1519,42 @@
 
     document.addEventListener("toggle", (event) => {
       const details = event.target;
-      if (!(details instanceof HTMLDetailsElement) || !details.dataset.group) {
+      if (!(details instanceof HTMLDetailsElement)) {
+        return;
+      }
+
+      if (details.dataset.nodeId) {
+        state.nodeOpen.set(details.dataset.nodeId, details.open);
+        if (details.open) {
+          const snapshot = state.snapshot;
+          const node = snapshot?.nodes?.find((item) => nodeIdentity(item) === details.dataset.nodeId);
+          if (node) {
+            void ensureNodeDetailLoaded(node);
+          }
+        }
+
+        return;
+      }
+
+      if (!details.dataset.group) {
         return;
       }
 
       state.groupOpen.set(details.dataset.group, details.open);
     }, true);
+
+    document.addEventListener("click", (event) => {
+      const details = event.target.closest?.("details.node");
+      if (!(details instanceof HTMLDetailsElement) || !details.dataset.nodeId || !details.open) {
+        return;
+      }
+
+      const snapshot = state.snapshot;
+      const node = snapshot?.nodes?.find((item) => nodeIdentity(item) === details.dataset.nodeId);
+      if (node) {
+        void ensureNodeDetailLoaded(node);
+      }
+    });
 
     fetchSnapshot();
     renderAgentInstallCommand({});

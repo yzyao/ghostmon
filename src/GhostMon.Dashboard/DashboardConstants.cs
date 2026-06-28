@@ -6,6 +6,7 @@ internal static class DashboardConstants
     public const string RedisActiveNodesKey = RedisKeyPrefix + "active";
     public const string RedisHistoryKeyPrefix = RedisKeyPrefix + "history:";
     public const string SnapshotPath = "/api/snapshot";
+    public const string NodeDetailPath = "/api/node-detail";
     public const string AgentConfigPath = "/api/agent-config";
     public const string AgentInstallConfigPath = "/api/agent-install-config";
     public const string IngestPath = "/api/ingest";

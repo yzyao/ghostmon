@@ -8,6 +8,8 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "GhostMon.Agent", "src\Ghost
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "GhostMon.Dashboard", "src\GhostMon.Dashboard\GhostMon.Dashboard.csproj", "{4E59D5B9-7D34-4A3A-8D1F-7B4F3E0AF8D7}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "GhostMon.Dashboard.Tests", "src\GhostMon.Dashboard.Tests\GhostMon.Dashboard.Tests.csproj", "{4D71B6D4-0E23-41F6-8F3A-3C1C8E9D2C91}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -26,5 +28,9 @@ Global
 		{4E59D5B9-7D34-4A3A-8D1F-7B4F3E0AF8D7}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{4E59D5B9-7D34-4A3A-8D1F-7B4F3E0AF8D7}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{4E59D5B9-7D34-4A3A-8D1F-7B4F3E0AF8D7}.Release|Any CPU.Build.0 = Release|Any CPU
+		{4D71B6D4-0E23-41F6-8F3A-3C1C8E9D2C91}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{4D71B6D4-0E23-41F6-8F3A-3C1C8E9D2C91}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{4D71B6D4-0E23-41F6-8F3A-3C1C8E9D2C91}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{4D71B6D4-0E23-41F6-8F3A-3C1C8E9D2C91}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 EndGlobal

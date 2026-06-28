@@ -6,6 +6,7 @@ using StackExchange.Redis;
 namespace GhostMon.Dashboard;
 
 public sealed class RedisProbeStore
+    : IProbeStore
 {
     private const int MaxHistoryLength = 17_280;
 
@@ -39,8 +40,7 @@ public sealed class RedisProbeStore
         await Task.WhenAll(upsertNodeTask, pushHistoryTask);
         await _database.ListTrimAsync(historyKey, 0, MaxHistoryLength - 1);
 
-        var history = PrependHistory(snapshot, FindHistory(currentSnapshot, nodeIdentity));
-        var updatedNode = BuildNodeBroadcastSnapshot(mergedRecord, history);
+        var updatedNode = BuildNodeBroadcastSnapshot(mergedRecord);
         return UpdateCache(currentSnapshot, updatedNode);
     }
 
@@ -56,6 +56,19 @@ public sealed class RedisProbeStore
         return UpdateCache(snapshots);
     }
 
+    public async Task<NodeDetailSnapshot?> ReadNodeDetailAsync(string remoteIp, int metricsPort)
+    {
+        var nodeIdentity = BuildNodeIdentity(remoteIp, metricsPort);
+        var record = await ReadNodeAsync(nodeIdentity);
+        if (record is null)
+        {
+            return null;
+        }
+
+        var history = await ReadHistoryAsync(record);
+        return BuildNodeDetailSnapshot(record, history);
+    }
+
     private async Task<NodeBroadcastSnapshot[]> ReadBroadcastSnapshotsAsync()
     {
         var nodes = await ReadAllNodesAsync();
@@ -63,7 +76,7 @@ public sealed class RedisProbeStore
 
         for (var index = 0; index < nodes.Length; index++)
         {
-            snapshots[index] = BuildNodeBroadcastSnapshot(nodes[index], await ReadHistoryAsync(nodes[index]));
+            snapshots[index] = BuildNodeBroadcastSnapshot(nodes[index]);
         }
 
         return snapshots;
@@ -90,6 +103,12 @@ public sealed class RedisProbeStore
             .ToArray();
     }
 
+    private async Task<NodeRegistryRecord?> ReadNodeAsync(string nodeIdentity)
+    {
+        var entry = await _database.HashGetAsync(DashboardConstants.RedisActiveNodesKey, nodeIdentity);
+        return TryDeserializeJson(entry, ProbeJsonContext.Default.NodeRegistryRecord);
+    }
+
     private async Task<HistoricalSnapshot[]> ReadHistoryAsync(NodeRegistryRecord record)
     {
         var values = await _database.ListRangeAsync(BuildHistoryKey(record), 0, -1);
@@ -110,6 +129,8 @@ public sealed class RedisProbeStore
     private static string BuildHistoryKey(NodeRegistryRecord record) => $"{DashboardConstants.RedisHistoryKeyPrefix}{BuildNodeIdentity(record)}";
 
     private static string BuildNodeIdentity(NodeRegistryRecord record) => $"{record.RemoteIp}:{record.MetricsPort}";
+
+    private static string BuildNodeIdentity(string remoteIp, int metricsPort) => $"{remoteIp}:{metricsPort}";
 
     private DashboardSnapshot UpdateCache(DashboardSnapshot currentSnapshot, NodeBroadcastSnapshot updatedNode)
     {
@@ -135,28 +156,33 @@ public sealed class RedisProbeStore
         return updatedSnapshot;
     }
 
-    private static NodeBroadcastSnapshot BuildNodeBroadcastSnapshot(NodeRegistryRecord record, HistoricalSnapshot[] history)
+    private static NodeBroadcastSnapshot BuildNodeBroadcastSnapshot(NodeRegistryRecord record)
     {
         var currentMetrics = record.CurrentMetrics ?? new ProbeMetrics
         {
             Assets = record.Assets,
-            Runtime = history.Length > 0 ? history[0].Runtime : default
+            Runtime = default
         };
 
         return new NodeBroadcastSnapshot
         {
             Registration = record,
-            CurrentMetrics = currentMetrics,
-            History = history
+            CurrentMetrics = currentMetrics
         };
     }
 
-    private static HistoricalSnapshot[] FindHistory(DashboardSnapshot snapshot, string nodeIdentity)
+    private static NodeDetailSnapshot BuildNodeDetailSnapshot(NodeRegistryRecord record, HistoricalSnapshot[] history)
     {
-        var existingNode = snapshot.Nodes.FirstOrDefault(node =>
-            BuildNodeIdentity(node.Registration) == nodeIdentity);
-
-        return existingNode?.History ?? Array.Empty<HistoricalSnapshot>();
+        return new NodeDetailSnapshot
+        {
+            Registration = record,
+            CurrentMetrics = record.CurrentMetrics ?? new ProbeMetrics
+            {
+                Assets = record.Assets,
+                Runtime = history.Length > 0 ? history[0].Runtime : default
+            },
+            History = history
+        };
     }
 
     private static HistoricalSnapshot[] PrependHistory(HistoricalSnapshot snapshot, HistoricalSnapshot[] existingHistory)

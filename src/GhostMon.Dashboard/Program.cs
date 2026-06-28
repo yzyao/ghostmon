@@ -38,6 +38,7 @@ app.UseStaticFiles();
 
 app.MapGet("/healthz", static () => Results.Text("ok", "text/plain"));
 app.MapGet(DashboardConstants.SnapshotPath, MapSnapshot);
+app.MapGet(DashboardConstants.NodeDetailPath, GetNodeDetail);
 app.MapGet(DashboardConstants.AgentConfigPath, GetAgentConfig);
 app.MapGet(DashboardConstants.AgentInstallConfigPath, GetAgentInstallConfig);
 app.MapPost(DashboardConstants.IngestPath, IngestNode);
@@ -48,133 +49,29 @@ app.Run();
 
 static IResult MapSnapshot(RedisProbeStore store)
 {
-    return Results.Json(store.ReadDashboardSnapshot(), ProbeJsonContext.Default.DashboardSnapshot);
+    return DashboardEndpoints.MapSnapshotForTests(store);
+}
+
+static Task<IResult> GetNodeDetail(string remoteIp, int metricsPort, RedisProbeStore store)
+{
+    return DashboardEndpoints.GetNodeDetailForTests(store, remoteIp, metricsPort);
 }
 
 static IResult GetAgentConfig(DashboardRuntimeSettings runtimeSettings)
 {
-    var config = new AgentRuntimeConfig
-    {
-        TelemetryIntervalSeconds = runtimeSettings.TelemetryIntervalSeconds,
-        PingTimeoutMilliseconds = runtimeSettings.PingTimeoutMilliseconds,
-        PingTargetMode = runtimeSettings.PingTargetMode,
-        PingTargets = runtimeSettings.PingTargets
-    };
-
-    return Results.Json(config, ProbeJsonContext.Default.AgentRuntimeConfig);
+    return DashboardEndpoints.GetAgentConfigForTests(runtimeSettings);
 }
 
 static IResult GetAgentInstallConfig(DashboardRuntimeSettings runtimeSettings)
 {
-    var config = new AgentInstallConfig
-    {
-        AgentImage = runtimeSettings.AgentImage,
-        SecurityToken = runtimeSettings.SecurityToken,
-        TelemetryIntervalSeconds = runtimeSettings.TelemetryIntervalSeconds,
-        PingTimeoutMilliseconds = runtimeSettings.PingTimeoutMilliseconds,
-        PingTargetMode = runtimeSettings.PingTargetMode,
-        PingTargets = runtimeSettings.PingTargets
-    };
-
-    return Results.Json(config, ProbeJsonContext.Default.AgentInstallConfig);
+    return DashboardEndpoints.GetAgentInstallConfigForTests(runtimeSettings);
 }
 
-static async Task<IResult> IngestNode(
+static Task<IResult> IngestNode(
     HttpContext context,
     RedisProbeStore store,
     DashboardRuntimeSettings runtimeSettings,
     CancellationToken cancellationToken)
 {
-    if (!IsValidToken(context, runtimeSettings.SecurityToken))
-    {
-        return Results.StatusCode(StatusCodes.Status403Forbidden);
-    }
-
-    NodeTelemetryReport? request;
-    try
-    {
-        request = await context.Request.ReadFromJsonAsync(ProbeJsonContext.Default.NodeTelemetryReport, cancellationToken);
-    }
-    catch (JsonException)
-    {
-        return Results.BadRequest();
-    }
-
-    if (request is null)
-    {
-        return Results.BadRequest();
-    }
-
-    var remoteIp = ResolveClientIp(context);
-    if (string.IsNullOrWhiteSpace(remoteIp))
-    {
-        return Results.BadRequest();
-    }
-
-    var now = DateTimeOffset.UtcNow;
-    var record = new NodeRegistryRecord
-    {
-        RemoteIp = remoteIp,
-        NodeName = request.NodeName,
-        GroupName = request.GroupName,
-        MetricsPort = request.MetricsPort,
-        AgentVersion = request.AgentVersion,
-        RegisteredUtc = now,
-        LastSeenUtc = now,
-        Assets = request.Metrics.Assets,
-        CurrentMetrics = request.Metrics
-    };
-
-    var snapshot = new HistoricalSnapshot
-    {
-        CapturedAtUtc = now,
-        Runtime = request.Metrics.Runtime
-    };
-
-    await store.UpsertNodeAsync(record, snapshot);
-
-    return Results.NoContent();
-}
-
-static bool IsValidToken(HttpContext context, string expectedToken)
-{
-    var incomingToken = context.Request.Headers[DashboardConstants.SecurityTokenHeader].ToString();
-    return !string.IsNullOrWhiteSpace(incomingToken) &&
-           string.Equals(incomingToken, expectedToken, StringComparison.Ordinal);
-}
-
-static string ResolveClientIp(HttpContext context)
-{
-    var forwardedFor = context.Request.Headers[DashboardConstants.ForwardedForHeader].ToString();
-    if (!string.IsNullOrWhiteSpace(forwardedFor))
-    {
-        var first = forwardedFor.Split(',', StringSplitOptions.TrimEntries | StringSplitOptions.RemoveEmptyEntries).FirstOrDefault();
-        var normalizedForwarded = NormalizeIp(first);
-        if (!string.IsNullOrWhiteSpace(normalizedForwarded))
-        {
-            return normalizedForwarded;
-        }
-    }
-
-    return NormalizeIp(context.Connection.RemoteIpAddress?.ToString()) ?? string.Empty;
-}
-
-static string? NormalizeIp(string? raw)
-{
-    if (string.IsNullOrWhiteSpace(raw))
-    {
-        return null;
-    }
-
-    if (!IPAddress.TryParse(raw, out var parsed))
-    {
-        return raw.Trim();
-    }
-
-    if (parsed.AddressFamily == System.Net.Sockets.AddressFamily.InterNetworkV6 && parsed.IsIPv4MappedToIPv6)
-    {
-        return parsed.MapToIPv4().ToString();
-    }
-
-    return parsed.ToString();
+    return DashboardEndpoints.IngestNodeForTests(context, store, runtimeSettings, cancellationToken);
 }

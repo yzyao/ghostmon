@@ -17,5 +17,6 @@ namespace GhostMon.Contracts;
 [JsonSerializable(typeof(NodeRegistryRecord))]
 [JsonSerializable(typeof(HistoricalSnapshot))]
 [JsonSerializable(typeof(NodeBroadcastSnapshot))]
+[JsonSerializable(typeof(NodeDetailSnapshot))]
 [JsonSerializable(typeof(DashboardSnapshot))]
 public partial class ProbeJsonContext : JsonSerializerContext;
