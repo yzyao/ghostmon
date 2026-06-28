@@ -1,17 +1,21 @@
 using System.Net;
 using System.Text.Json;
 using GhostMon.Contracts;
+using Microsoft.AspNetCore.Mvc;
 
 namespace GhostMon.Dashboard;
 
 public static class DashboardEndpoints
 {
-    public static IResult MapSnapshotForTests(IProbeStore store)
+    public static IResult MapSnapshotForTests([FromServices] IProbeStore store)
     {
         return Results.Json(store.ReadDashboardSnapshot(), ProbeJsonContext.Default.DashboardSnapshot);
     }
 
-    public static async Task<IResult> GetNodeDetailForTests(IProbeStore store, string remoteIp, int metricsPort)
+    public static async Task<IResult> GetNodeDetailForTests(
+        [FromServices] IProbeStore store,
+        string remoteIp,
+        int metricsPort)
     {
         if (string.IsNullOrWhiteSpace(remoteIp) || metricsPort <= 0)
         {
@@ -24,7 +28,7 @@ public static class DashboardEndpoints
             : Results.Json(detail, ProbeJsonContext.Default.NodeDetailSnapshot);
     }
 
-    public static IResult GetAgentConfigForTests(DashboardRuntimeSettings runtimeSettings)
+    public static IResult GetAgentConfigForTests([FromServices] DashboardRuntimeSettings runtimeSettings)
     {
         var config = new AgentRuntimeConfig
         {
@@ -37,7 +41,7 @@ public static class DashboardEndpoints
         return Results.Json(config, ProbeJsonContext.Default.AgentRuntimeConfig);
     }
 
-    public static IResult GetAgentInstallConfigForTests(DashboardRuntimeSettings runtimeSettings)
+    public static IResult GetAgentInstallConfigForTests([FromServices] DashboardRuntimeSettings runtimeSettings)
     {
         var config = new AgentInstallConfig
         {
@@ -54,8 +58,8 @@ public static class DashboardEndpoints
 
     public static async Task<IResult> IngestNodeForTests(
         HttpContext context,
-        IProbeStore store,
-        DashboardRuntimeSettings runtimeSettings,
+        [FromServices] IProbeStore store,
+        [FromServices] DashboardRuntimeSettings runtimeSettings,
         CancellationToken cancellationToken)
     {
         if (!IsValidToken(context, runtimeSettings.SecurityToken))

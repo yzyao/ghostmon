@@ -10,6 +10,14 @@ services:
       - "1"
     volumes:
       - redis-data:/data
+    healthcheck:
+      test:
+        - CMD
+        - redis-cli
+        - ping
+      interval: 5s
+      timeout: 3s
+      retries: 20
     restart: unless-stopped
 
   dashboard:
@@ -18,7 +26,8 @@ services:
       context: .
       dockerfile: src/GhostMon.Dashboard/Dockerfile
     depends_on:
-      - redis
+      redis:
+        condition: service_healthy
     environment:
       ASPNETCORE_URLS: http://0.0.0.0:8080
       RedisConnectionString: ${RedisConnectionString:-redis:6379,abortConnect=false}
@@ -30,6 +39,15 @@ services:
       PingTargets: ${PingTargets:-}
     ports:
       - "8080:8080"
+    healthcheck:
+      test:
+        - CMD
+        - wget
+        - -qO-
+        - http://127.0.0.1:8080/healthz
+      interval: 10s
+      timeout: 3s
+      retries: 20
     restart: unless-stopped
 
   agent:
@@ -38,8 +56,10 @@ services:
       context: .
       dockerfile: src/GhostMon.Agent/Dockerfile
     depends_on:
-      - dashboard
-      - redis
+      dashboard:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
     environment:
       DashboardBaseUrl: ${DashboardBaseUrl:-http://dashboard:8080}
       SecurityToken: ${SecurityToken:-replace-with-a-shared-secret}
@@ -59,6 +79,15 @@ services:
       - /sys:/host-sys:ro
       - /:/host-root:ro
       - /tmp:/host-tmp
+    healthcheck:
+      test:
+        - CMD
+        - wget
+        - -qO-
+        - http://127.0.0.1:8081/healthz
+      interval: 10s
+      timeout: 3s
+      retries: 20
     restart: unless-stopped
 
 volumes:
