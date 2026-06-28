@@ -1,4 +1,5 @@
 using System.IO.Compression;
+using System.Text;
 using GhostMon.Contracts;
 using MudBlazor.Services;
 using Microsoft.AspNetCore.ResponseCompression;
@@ -77,7 +78,13 @@ app.MapGet("/routes-check", (IEnumerable<EndpointDataSource> sources) =>
         .OrderBy(item => item.Pattern)
         .ToArray();
 
-    return Results.Json(routes);
+    var sb = new StringBuilder();
+    foreach (var route in routes)
+    {
+        sb.AppendLine($"{route.Pattern} | {route.DisplayName}");
+    }
+
+    return Results.Text(sb.ToString(), "text/plain");
 });
 
 app.MapGet("/healthz", static () => Results.Text("ok", "text/plain"));
