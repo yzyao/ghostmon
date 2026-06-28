@@ -1,0 +1,76 @@
+@using MudBlazor
+
+@if (Groups.Count == 0)
+{
+    <MudAlert Severity="Severity.Info" Variant="Variant.Outlined">
+        No nodes match the current filters.
+    </MudAlert>
+}
+else
+{
+    <MudExpansionPanels MultiExpansion="true" Dense="true" Outlined="true" Square="true" Class="group-panels">
+        @foreach (var group in Groups)
+        {
+            <MudExpansionPanel Expanded="@IsGroupOpen(group.GroupName)"
+                               ExpandedChanged="@((bool expanded) => GroupExpandedChanged.InvokeAsync((group.GroupName, expanded)))">
+                <TitleContent>
+                    <div class="group-titlebar">
+                        <div>
+                            <MudText Typo="Typo.h6">@group.GroupName</MudText>
+                            <MudText Typo="Typo.caption" Class="dashboard-muted">@group.Items.Length nodes</MudText>
+                        </div>
+                        <MudStack Row="true" Spacing="1" Class="group-badges">
+                            <MudChip T="string" Color="Color.Success" Variant="Variant.Outlined" Size="Size.Small">Healthy @group.Healthy</MudChip>
+                            <MudChip T="string" Color="Color.Warning" Variant="Variant.Outlined" Size="Size.Small">Warning @group.Warning</MudChip>
+                            <MudChip T="string" Color="Color.Error" Variant="Variant.Outlined" Size="Size.Small">Degraded @group.Degraded</MudChip>
+                        </MudStack>
+                    </div>
+                </TitleContent>
+                <ChildContent>
+                    <MudStack Spacing="2" Class="group-content">
+                        @foreach (var node in group.Items)
+                        {
+                            <NodePanel Node="node"
+                                       IsOpen="IsNodeOpen(node)"
+                                       OnExpandedChanged="@((bool expanded) => NodeExpandedChanged.InvokeAsync((node, expanded)))"
+                                       AssessNode="AssessNode"
+                                       HealthLabel="HealthLabel"
+                                       HealthChipColor="HealthChipColor"
+                                       NodeName="NodeName"
+                                       NodeGroup="NodeGroup"
+                                       NodeIdentity="NodeIdentity"
+                                       NodeLabel="NodeLabel"
+                                       FormatTime="FormatTime"
+                                       FormatPercent="FormatPercent"
+                                       CurrentRuntime="CurrentRuntime"
+                                       BuildSparkline="BuildSparkline"
+                                       NodeDetails="NodeDetails"
+                                       LoadingDetails="LoadingDetails" />
+                        }
+                    </MudStack>
+                </ChildContent>
+            </MudExpansionPanel>
+        }
+    </MudExpansionPanels>
+}
+
+@code {
+    [Parameter] public IReadOnlyList<DashboardGroupView> Groups { get; set; } = Array.Empty<DashboardGroupView>();
+    [Parameter] public Func<string, bool> IsGroupOpen { get; set; } = _ => true;
+    [Parameter] public Func<NodeBroadcastSnapshot, bool> IsNodeOpen { get; set; } = _ => false;
+    [Parameter] public EventCallback<(string GroupName, bool Expanded)> GroupExpandedChanged { get; set; }
+    [Parameter] public EventCallback<(NodeBroadcastSnapshot Node, bool Expanded)> NodeExpandedChanged { get; set; }
+    [Parameter] public Func<NodeBroadcastSnapshot, string> AssessNode { get; set; } = _ => string.Empty;
+    [Parameter] public Func<string, string> HealthLabel { get; set; } = _ => string.Empty;
+    [Parameter] public Func<string, Color> HealthChipColor { get; set; } = _ => Color.Default;
+    [Parameter] public Func<NodeBroadcastSnapshot, string> NodeName { get; set; } = _ => string.Empty;
+    [Parameter] public Func<NodeBroadcastSnapshot, string> NodeGroup { get; set; } = _ => string.Empty;
+    [Parameter] public Func<NodeBroadcastSnapshot, string> NodeIdentity { get; set; } = _ => string.Empty;
+    [Parameter] public Func<NodeBroadcastSnapshot, string> NodeLabel { get; set; } = _ => string.Empty;
+    [Parameter] public Func<DateTimeOffset, string> FormatTime { get; set; } = _ => string.Empty;
+    [Parameter] public Func<double, string> FormatPercent { get; set; } = _ => string.Empty;
+    [Parameter] public Func<NodeBroadcastSnapshot, ProbeRuntimeInfo> CurrentRuntime { get; set; } = _ => default;
+    [Parameter] public Func<HistoricalSnapshot[], string> BuildSparkline { get; set; } = _ => string.Empty;
+    [Parameter] public IReadOnlyDictionary<string, NodeDetailSnapshot> NodeDetails { get; set; } = new Dictionary<string, NodeDetailSnapshot>();
+    [Parameter] public ISet<string> LoadingDetails { get; set; } = new HashSet<string>();
+}

@@ -131,6 +131,8 @@ public sealed class DashboardApiTests
 
         public DashboardSnapshot ReadDashboardSnapshot() => _snapshot;
 
+        public Task RefreshSnapshotAsync() => Task.CompletedTask;
+
         public Task<NodeDetailSnapshot?> ReadNodeDetailAsync(string remoteIp, int metricsPort)
         {
             if (_nodeDetail is null)

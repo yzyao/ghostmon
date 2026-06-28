@@ -1,0 +1,56 @@
+@using MudBlazor
+
+<MudCard Class="filter-card">
+    <MudCardContent>
+        <MudStack Spacing="2">
+            <MudStack Spacing="1">
+                <MudText Typo="Typo.h6">@Title</MudText>
+                <MudText Typo="Typo.body2" Class="dashboard-muted">@Summary</MudText>
+            </MudStack>
+
+            <MudTextField T="string"
+                          Value="@Search"
+                          ValueChanged="@SearchChanged"
+                          Immediate="true"
+                          Variant="Variant.Outlined"
+                          Margin="Margin.Dense"
+                          Placeholder="@Placeholder"
+                          Adornment="Adornment.Start"
+                          AdornmentIcon="@Icons.Material.Filled.Search"
+                          Clearable="true" />
+
+            <MudStack Spacing="1" Class="filter-row">
+                <MudButtonGroup Color="Color.Primary" Variant="Variant.Outlined" FullWidth="true">
+                    @foreach (var option in FilterOptions)
+                    {
+                        <MudButton Variant="@option.Variant" OnClick="@option.OnClick">@option.Label</MudButton>
+                    }
+                </MudButtonGroup>
+
+                <MudStack Row="true" Spacing="1" Class="filter-row-actions">
+                    <MudButton Variant="Variant.Text" Color="Color.Primary" OnClick="@OnToggleCollapse">
+                        @ToggleText
+                    </MudButton>
+                    <MudButton Variant="Variant.Text" Color="Color.Primary" OnClick="@OnRefresh">
+                        @RefreshText
+                    </MudButton>
+                </MudStack>
+            </MudStack>
+        </MudStack>
+    </MudCardContent>
+</MudCard>
+
+@code {
+    public sealed record FilterOption(string Label, Variant Variant, EventCallback OnClick);
+
+    [Parameter] public string Title { get; set; } = string.Empty;
+    [Parameter] public string Summary { get; set; } = string.Empty;
+    [Parameter] public string Search { get; set; } = string.Empty;
+    [Parameter] public EventCallback<string> SearchChanged { get; set; }
+    [Parameter] public string Placeholder { get; set; } = string.Empty;
+    [Parameter] public IReadOnlyList<FilterOption> FilterOptions { get; set; } = Array.Empty<FilterOption>();
+    [Parameter] public string ToggleText { get; set; } = string.Empty;
+    [Parameter] public EventCallback OnToggleCollapse { get; set; }
+    [Parameter] public string RefreshText { get; set; } = string.Empty;
+    [Parameter] public EventCallback OnRefresh { get; set; }
+}

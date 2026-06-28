@@ -6,5 +6,7 @@ public interface IProbeStore
 {
     DashboardSnapshot ReadDashboardSnapshot();
 
+    Task RefreshSnapshotAsync();
+
     Task<NodeDetailSnapshot?> ReadNodeDetailAsync(string remoteIp, int metricsPort);
 }

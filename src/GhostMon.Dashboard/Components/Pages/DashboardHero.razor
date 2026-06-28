@@ -1,0 +1,48 @@
+@using MudBlazor
+
+<MudPaper Class="hero-panel" Elevation="0">
+    <MudStack Spacing="3">
+        <MudStack Spacing="1">
+            <MudChip T="string" Color="Color.Info" Variant="Variant.Outlined" Size="Size.Small">@Tag</MudChip>
+            <MudText Typo="Typo.h3">@Title</MudText>
+            <MudText Typo="Typo.body1" Class="dashboard-muted">@Subtitle</MudText>
+        </MudStack>
+
+        <MudStack Spacing="2" Class="hero-actions">
+            <MudButton Variant="Variant.Filled"
+                       Color="Color.Primary"
+                       StartIcon="@Icons.Material.Filled.Refresh"
+                       Disabled="@RefreshDisabled"
+                       OnClick="@OnRefresh">
+                @RefreshText
+            </MudButton>
+            <MudButton Variant="Variant.Outlined"
+                       Color="Color.Primary"
+                       StartIcon="@Icons.Material.Filled.ContentCopy"
+                       OnClick="@OnCopy">
+                @CopyText
+            </MudButton>
+        </MudStack>
+    </MudStack>
+
+    <MudAlert Severity="Severity.Info" Dense="true" Variant="Variant.Outlined" Class="hero-status">
+        @Status
+    </MudAlert>
+
+    <MudPaper Class="command-shell" Outlined="true">
+        <MudText Typo="Typo.body2" Class="dashboard-command">@Command</MudText>
+    </MudPaper>
+</MudPaper>
+
+@code {
+    [Parameter] public string Tag { get; set; } = string.Empty;
+    [Parameter] public string Title { get; set; } = string.Empty;
+    [Parameter] public string Subtitle { get; set; } = string.Empty;
+    [Parameter] public string RefreshText { get; set; } = string.Empty;
+    [Parameter] public bool RefreshDisabled { get; set; }
+    [Parameter] public EventCallback OnRefresh { get; set; }
+    [Parameter] public string CopyText { get; set; } = string.Empty;
+    [Parameter] public EventCallback OnCopy { get; set; }
+    [Parameter] public string Status { get; set; } = string.Empty;
+    [Parameter] public string Command { get; set; } = string.Empty;
+}

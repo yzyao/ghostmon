@@ -1,0 +1,46 @@
+@using MudBlazor
+
+<MudGrid Spacing="3">
+    <MudItem xs="12" md="4">
+        <MudCard Class="metric-card">
+            <MudCardContent>
+                <MudText Typo="Typo.overline" Class="dashboard-muted">@ClusterLabel</MudText>
+                <MudText Typo="Typo.h4" Color="@ToneColor">@ClusterValue</MudText>
+                <MudText Typo="Typo.body2" Class="dashboard-muted">@ClusterDetail</MudText>
+            </MudCardContent>
+        </MudCard>
+    </MudItem>
+
+    <MudItem xs="12" md="4">
+        <MudCard Class="metric-card">
+            <MudCardContent>
+                <MudText Typo="Typo.overline" Class="dashboard-muted">@TrafficLabel</MudText>
+                <MudText Typo="Typo.h4">@TrafficValue</MudText>
+                <MudText Typo="Typo.body2" Class="dashboard-muted">@TrafficDetail</MudText>
+            </MudCardContent>
+        </MudCard>
+    </MudItem>
+
+    <MudItem xs="12" md="4">
+        <MudCard Class="metric-card">
+            <MudCardContent>
+                <MudText Typo="Typo.overline" Class="dashboard-muted">@HealthLabel</MudText>
+                <MudText Typo="Typo.h4" Color="@ToneColor">@HealthValue</MudText>
+                <MudText Typo="Typo.body2" Class="dashboard-muted">@HealthDetail</MudText>
+            </MudCardContent>
+        </MudCard>
+    </MudItem>
+</MudGrid>
+
+@code {
+    [Parameter] public string ClusterLabel { get; set; } = string.Empty;
+    [Parameter] public string ClusterValue { get; set; } = string.Empty;
+    [Parameter] public string ClusterDetail { get; set; } = string.Empty;
+    [Parameter] public string TrafficLabel { get; set; } = string.Empty;
+    [Parameter] public string TrafficValue { get; set; } = string.Empty;
+    [Parameter] public string TrafficDetail { get; set; } = string.Empty;
+    [Parameter] public string HealthLabel { get; set; } = string.Empty;
+    [Parameter] public string HealthValue { get; set; } = string.Empty;
+    [Parameter] public string HealthDetail { get; set; } = string.Empty;
+    [Parameter] public Color ToneColor { get; set; } = Color.Default;
+}

@@ -56,6 +56,11 @@ public sealed class RedisProbeStore
         return UpdateCache(snapshots);
     }
 
+    async Task IProbeStore.RefreshSnapshotAsync()
+    {
+        await RefreshSnapshotAsync();
+    }
+
     public async Task<NodeDetailSnapshot?> ReadNodeDetailAsync(string remoteIp, int metricsPort)
     {
         var nodeIdentity = BuildNodeIdentity(remoteIp, metricsPort);
